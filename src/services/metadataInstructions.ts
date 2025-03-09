@@ -70,6 +70,42 @@ export function getTokenImageGatewayUrl(): string {
   return TOKEN_IMAGE_GATEWAY_URL;
 }
 
+// Utility function to write a string to a buffer
+function writeString(buffer: Buffer, offset: number, string: string): number {
+  // Write string length as u32 little-endian
+  buffer.writeUInt32LE(string.length, offset);
+  offset += 4;
+  
+  // Write string bytes
+  buffer.write(string, offset, string.length, 'utf8');
+  offset += string.length;
+  
+  return offset;
+}
+
+// Utility function to write Option<T> to a buffer
+function writeOption<T>(
+  buffer: Buffer, 
+  offset: number, 
+  value: T | null,
+  writer: (buffer: Buffer, offset: number, value: T) => number
+): number {
+  if (value === null) {
+    // Write None (0)
+    buffer.writeUInt8(0, offset);
+    offset += 1;
+  } else {
+    // Write Some (1)
+    buffer.writeUInt8(1, offset);
+    offset += 1;
+    
+    // Write the value
+    offset = writer(buffer, offset, value);
+  }
+  
+  return offset;
+}
+
 // Create instruction to initialize token metadata for a fungible SPL token
 export function createTokenMetadataInstruction(
   metadataAccount: PublicKey,
@@ -83,67 +119,46 @@ export function createTokenMetadataInstruction(
   console.log('Using metadata URI:', TOKEN_METADATA_URL);
   
   // Create the buffer for instruction data
-  const buffer = Buffer.alloc(2000); // Large buffer to be safe
-  let cursor = 0;
+  const buffer = Buffer.alloc(1024); // Buffer large enough for our data
+  let offset = 0;
   
-  // Write instruction discriminator (33 = CreateMetadataAccountV3)
-  buffer.writeUInt8(33, cursor);
-  cursor += 1;
+  // Write instruction discriminator (10 = CreateMetadataAccountV2)
+  // Using V2 instead of V3 as it has better compatibility
+  buffer.writeUInt8(10, offset);
+  offset += 1;
   
-  // Name (string)
-  const nameBuffer = Buffer.from(tokenName);
-  buffer.writeUInt32LE(nameBuffer.length, cursor);
-  cursor += 4;
-  nameBuffer.copy(buffer, cursor);
-  cursor += nameBuffer.length;
+  // Write data struct for Metadata
   
-  // Symbol (string)
-  const symbolBuffer = Buffer.from(tokenSymbol);
-  buffer.writeUInt32LE(symbolBuffer.length, cursor);
-  cursor += 4;
-  symbolBuffer.copy(buffer, cursor);
-  cursor += symbolBuffer.length;
+  // Write name
+  offset = writeString(buffer, offset, tokenName);
   
-  // URI (string)
-  const uriBuffer = Buffer.from(TOKEN_METADATA_URL);
-  buffer.writeUInt32LE(uriBuffer.length, cursor);
-  cursor += 4;
-  uriBuffer.copy(buffer, cursor);
-  cursor += uriBuffer.length;
+  // Write symbol
+  offset = writeString(buffer, offset, tokenSymbol);
   
-  // Seller fee basis points (u16)
-  buffer.writeUInt16LE(0, cursor); // 0 fee
-  cursor += 2;
+  // Write uri
+  offset = writeString(buffer, offset, TOKEN_METADATA_URL);
   
-  // Creators - Option<Vec<Creator>>
-  buffer.writeUInt8(0, cursor); // None (0)
-  cursor += 1;
+  // Write seller fee basis points (0 for no fees)
+  buffer.writeUInt16LE(0, offset);
+  offset += 2;
   
-  // Collection - Option<Collection>
-  buffer.writeUInt8(0, cursor); // None (0)
-  cursor += 1;
+  // Write creators option (None)
+  buffer.writeUInt8(0, offset);
+  offset += 1;
   
-  // Uses - Option<Uses>
-  buffer.writeUInt8(0, cursor); // None (0)
-  cursor += 1;
+  // Write primary sale happened (false)
+  buffer.writeUInt8(0, offset);
+  offset += 1;
   
-  // Is mutable - boolean
-  buffer.writeUInt8(0, cursor); // false
-  cursor += 1;
+  // Write is mutable (false)
+  buffer.writeUInt8(0, offset);
+  offset += 1;
   
-  // Collection details - Option<CollectionDetails>
-  buffer.writeUInt8(0, cursor); // None (0)
-  cursor += 1;
+  // Skip optional fields in V2 which don't need to be included
   
-  // Token standard - Option<TokenStandard>
-  buffer.writeUInt8(1, cursor); // Some (1)
-  cursor += 1;
-  buffer.writeUInt8(2, cursor); // 2 = Fungible (not 1 = FungibleAsset)
-  cursor += 1;
+  console.log('Metadata instruction data total size:', offset);
   
-  console.log('Metadata instruction data cursor position:', cursor);
-  
-  // Set up the required accounts for the instruction
+  // Set up the required accounts for the instruction (for V2 format)
   const keys = [
     { pubkey: metadataAccount, isSigner: false, isWritable: true },
     { pubkey: mint, isSigner: false, isWritable: false },
@@ -157,6 +172,6 @@ export function createTokenMetadataInstruction(
   return new TransactionInstruction({
     keys,
     programId: TOKEN_METADATA_PROGRAM_ID,
-    data: buffer.slice(0, cursor), // Only use exactly what we need
+    data: buffer.slice(0, offset), // Only use exactly what we need
   });
 }
