@@ -82,70 +82,83 @@ export function createTokenMetadataInstruction(
   console.log('Creating token metadata with message as name:', tokenName);
   console.log('Using metadata URI:', TOKEN_METADATA_URL);
   
-  // Prepare data for the instruction with optimized size
-  const dataBuffer = Buffer.alloc(500); // Standard buffer size for metadata
+  // Create metadata (V3) - Using proper Metaplex format
+  const metadataV3 = {
+    name: tokenName,
+    symbol: tokenSymbol,
+    uri: TOKEN_METADATA_URL,
+    sellerFeeBasisPoints: 0,
+    creators: null,
+    collection: null,
+    uses: null
+  };
   
+  // Serialize the data correctly for Metaplex
+  // We need to serialize the entire instruction including the instruction discriminator
+  const dataBytes = Buffer.alloc(1000); // Larger buffer to be safe
   let cursor = 0;
   
-  // Write instruction index (33 = CreateMetadataAccountV3)
-  dataBuffer.writeUInt8(33, cursor);
+  // Instruction discriminator (33 = CreateMetadataAccountV3)
+  dataBytes.writeUInt8(33, cursor);
   cursor += 1;
   
-  // Write the metadata
-  // Name (String)
-  const nameBuffer = Buffer.from(tokenName);
-  const nameLength = Math.min(nameBuffer.length, 32); // Limit to 32 chars
-  dataBuffer.writeUInt32LE(nameLength, cursor);
-  cursor += 4;
-  nameBuffer.copy(dataBuffer, cursor, 0, nameLength);
-  cursor += nameLength;
+  // Write data - using a more careful approach
   
-  // Symbol (String)
-  const symbolBuffer = Buffer.from(tokenSymbol);
-  const symbolLength = Math.min(symbolBuffer.length, 10); // Limit to 10 chars
-  dataBuffer.writeUInt32LE(symbolLength, cursor);
+  // Name
+  const nameBuffer = Buffer.from(metadataV3.name);
+  dataBytes.writeUInt32LE(nameBuffer.length, cursor);
   cursor += 4;
-  symbolBuffer.copy(dataBuffer, cursor, 0, symbolLength);
-  cursor += symbolLength;
+  nameBuffer.copy(dataBytes, cursor);
+  cursor += nameBuffer.length;
   
-  // URI (String) - using IPFS metadata URL
-  const uriBuffer = Buffer.from(TOKEN_METADATA_URL);
-  const uriLength = Math.min(uriBuffer.length, 200);
-  dataBuffer.writeUInt32LE(uriLength, cursor);
+  // Symbol
+  const symbolBuffer = Buffer.from(metadataV3.symbol);
+  dataBytes.writeUInt32LE(symbolBuffer.length, cursor);
   cursor += 4;
-  uriBuffer.copy(dataBuffer, cursor, 0, uriLength);
-  cursor += uriLength;
+  symbolBuffer.copy(dataBytes, cursor);
+  cursor += symbolBuffer.length;
+  
+  // URI
+  const uriBuffer = Buffer.from(metadataV3.uri);
+  dataBytes.writeUInt32LE(uriBuffer.length, cursor);
+  cursor += 4;
+  uriBuffer.copy(dataBytes, cursor);
+  cursor += uriBuffer.length;
   
   // Seller fee basis points (u16)
-  dataBuffer.writeUInt16LE(0, cursor); // 0% royalty
+  dataBytes.writeUInt16LE(metadataV3.sellerFeeBasisPoints, cursor);
   cursor += 2;
   
-  // Creator array (Option<Vec<Creator>>)
-  dataBuffer.writeUInt8(0, cursor); // Option::None (no creators)
+  // Creators - Option<Vec<Creator>> - None (0)
+  dataBytes.writeUInt8(0, cursor);
   cursor += 1;
   
-  // Collection (Option<Collection>)
-  dataBuffer.writeUInt8(0, cursor); // Option::None (no collection)
+  // Collection - Option<Collection> - None (0)
+  dataBytes.writeUInt8(0, cursor);
   cursor += 1;
   
-  // Uses (Option<Uses>)
-  dataBuffer.writeUInt8(0, cursor); // Option::None (no uses)
+  // Uses - Option<Uses> - None (0)
+  dataBytes.writeUInt8(0, cursor);
   cursor += 1;
   
-  // Is mutable (bool)
-  dataBuffer.writeUInt8(1, cursor); // true
+  // Is mutable (bool) - true
+  dataBytes.writeUInt8(1, cursor);
   cursor += 1;
   
-  // Collection details (Option<CollectionDetails>)
-  dataBuffer.writeUInt8(0, cursor); // Option::None (no collection details)
+  // Collection details - Option<CollectionDetails> - None (0)
+  dataBytes.writeUInt8(0, cursor);
   cursor += 1;
   
-  // TOKEN STANDARD - This is crucial for SPL Token vs NFT distinction
-  // 0 = NonFungible, 1 = FungibleAsset, 2 = Fungible, 3 = NonFungibleEdition
-  dataBuffer.writeUInt8(1, cursor); // 2 = Fungible (Standard SPL Token)
+  // Token standard - Option<TokenStandard>
+  // Some (1) then value
+  dataBytes.writeUInt8(1, cursor); // Some
+  cursor += 1;
+  dataBytes.writeUInt8(2, cursor); // 2 = Fungible (standard SPL token)
   cursor += 1;
   
-  // Set up the keys for the instruction - optimized for SPL tokens
+  console.log('Metadata instruction data length:', cursor);
+  
+  // Set up the required accounts for the instruction
   const keys = [
     { pubkey: metadataAccount, isSigner: false, isWritable: true },
     { pubkey: mint, isSigner: false, isWritable: false },
@@ -153,14 +166,12 @@ export function createTokenMetadataInstruction(
     { pubkey: payer, isSigner: true, isWritable: true },
     { pubkey: mintAuthority, isSigner: true, isWritable: false }, // Update authority
     { pubkey: new PublicKey('11111111111111111111111111111111'), isSigner: false, isWritable: false }, // System program
-    { pubkey: new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'), isSigner: false, isWritable: false }, // SPL Token program
+    { pubkey: new PublicKey('SysvarRent111111111111111111111111111111111'), isSigner: false, isWritable: false }, // Rent sysvar
   ];
-  
-  console.log('Metadata instruction data length:', cursor);
   
   return new TransactionInstruction({
     keys,
     programId: TOKEN_METADATA_PROGRAM_ID,
-    data: dataBuffer.slice(0, cursor), // Only use exactly what we need
+    data: dataBytes.slice(0, cursor), // Only use exactly what we need
   });
 }
