@@ -24,8 +24,8 @@ const TOKEN_MINT_ADDRESS = new PublicKey('HauFsUDmrCgZaExDdUfdp2FC9udFTu7KVWTMPq
 const TOKEN_MINT_ADDRESS_STRING = 'HauFsUDmrCgZaExDdUfdp2FC9udFTu7KVWTMPq73pump';
 
 // Number of tokens to burn per message (in whole tokens)
-// REDUCED FOR TESTING - will change back to 10000 later
-const TOKENS_TO_BURN = 100; // Reduced to 100 tokens for testing
+// Updated to the correct amount
+const TOKENS_TO_BURN = 10000; // 10k tokens per message
 
 // Token decimals - SMS token has 9 decimals
 const TOKEN_DECIMALS = 9;
@@ -81,7 +81,7 @@ async function inspectTokenAccount(connection: Connection, tokenAccount: PublicK
         isFrozen: tokenAccountInfo.isFrozen,
         closeAuthority: tokenAccountInfo.closeAuthority?.toString() || 'No close authority'
       });
-      
+            
       // Check if the amount matches what we expect
       console.log(`💰 Raw token amount in account: ${tokenAccountInfo.amount.toString()}`);
       
