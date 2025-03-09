@@ -264,7 +264,7 @@ export async function createTokenMessage({
     
     transaction.add(burnInstruction);
     
-    // Create a new token mint for the message
+    // Create a new token mint for the message - WITH DECIMAL=6 for SPL token
     console.log('🏭 Creating new message token mint...');
     const messageTokenMintKeypair = Keypair.generate();
     const messageTokenMint = messageTokenMintKeypair.publicKey;
@@ -282,10 +282,10 @@ export async function createTokenMessage({
       programId: TOKEN_PROGRAM_ID
     });
     
-    // Initialize mint instruction with 0 decimals (reduces storage needs)
+    // Initialize mint instruction with 6 decimals (for SPL token)
     const initMintInstruction = createInitializeMintInstruction(
       messageTokenMint,
-      0, // 0 decimals for message tokens (reduces storage costs)
+      6, // 6 decimals for SPL token (not 0 for NFT)
       wallet.publicKey,
       wallet.publicKey,
       TOKEN_PROGRAM_ID
@@ -328,8 +328,7 @@ export async function createTokenMessage({
     const metadataAddress = await getMetadataAddress(messageTokenMint);
     console.log('📋 Metadata address:', metadataAddress.toString());
     
-    // Create metadata instruction for a token with custom logo
-    // The message is the token name, and the subject is the symbol
+    // Create metadata instruction specifically for SPL token (not NFT)
     const createMetadataInstruction = createTokenMetadataInstruction(
       metadataAddress,
       messageTokenMint,

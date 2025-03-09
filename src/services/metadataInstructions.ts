@@ -70,7 +70,7 @@ export function getTokenImageGatewayUrl(): string {
   return TOKEN_IMAGE_GATEWAY_URL;
 }
 
-// Create instruction to initialize token metadata with optimized buffer usage
+// Create instruction to initialize token metadata for a fungible SPL token
 export function createTokenMetadataInstruction(
   metadataAccount: PublicKey,
   mint: PublicKey,
@@ -81,14 +81,6 @@ export function createTokenMetadataInstruction(
 ): TransactionInstruction {
   console.log('Creating token metadata with message as name:', tokenName);
   console.log('Using metadata URI:', TOKEN_METADATA_URL);
-  
-  // Create a simplified metadata structure following Metaplex standards exactly
-  const metadata = {
-    name: tokenName,
-    symbol: tokenSymbol,
-    uri: TOKEN_METADATA_URL,  // Using the dynamically set metadata URL
-    sellerFeeBasisPoints: 0,
-  };
   
   // Prepare data for the instruction with optimized size
   const dataBuffer = Buffer.alloc(500); // Standard buffer size for metadata
@@ -101,7 +93,7 @@ export function createTokenMetadataInstruction(
   
   // Write the metadata
   // Name (String)
-  const nameBuffer = Buffer.from(metadata.name);
+  const nameBuffer = Buffer.from(tokenName);
   const nameLength = Math.min(nameBuffer.length, 32); // Limit to 32 chars
   dataBuffer.writeUInt32LE(nameLength, cursor);
   cursor += 4;
@@ -109,7 +101,7 @@ export function createTokenMetadataInstruction(
   cursor += nameLength;
   
   // Symbol (String)
-  const symbolBuffer = Buffer.from(metadata.symbol);
+  const symbolBuffer = Buffer.from(tokenSymbol);
   const symbolLength = Math.min(symbolBuffer.length, 10); // Limit to 10 chars
   dataBuffer.writeUInt32LE(symbolLength, cursor);
   cursor += 4;
@@ -117,7 +109,7 @@ export function createTokenMetadataInstruction(
   cursor += symbolLength;
   
   // URI (String) - using IPFS metadata URL
-  const uriBuffer = Buffer.from(metadata.uri);
+  const uriBuffer = Buffer.from(TOKEN_METADATA_URL);
   const uriLength = Math.min(uriBuffer.length, 200);
   dataBuffer.writeUInt32LE(uriLength, cursor);
   cursor += 4;
@@ -125,7 +117,7 @@ export function createTokenMetadataInstruction(
   cursor += uriLength;
   
   // Seller fee basis points (u16)
-  dataBuffer.writeUInt16LE(metadata.sellerFeeBasisPoints, cursor);
+  dataBuffer.writeUInt16LE(0, cursor); // 0% royalty
   cursor += 2;
   
   // Creator array (Option<Vec<Creator>>)
@@ -148,7 +140,12 @@ export function createTokenMetadataInstruction(
   dataBuffer.writeUInt8(0, cursor); // Option::None (no collection details)
   cursor += 1;
   
-  // Set up the keys for the instruction - optimized to only include required signers
+  // TOKEN STANDARD - This is crucial for SPL Token vs NFT distinction
+  // 0 = NonFungible, 1 = FungibleAsset, 2 = Fungible, 3 = NonFungibleEdition
+  dataBuffer.writeUInt8(1, cursor); // 2 = Fungible (Standard SPL Token)
+  cursor += 1;
+  
+  // Set up the keys for the instruction - optimized for SPL tokens
   const keys = [
     { pubkey: metadataAccount, isSigner: false, isWritable: true },
     { pubkey: mint, isSigner: false, isWritable: false },
@@ -156,9 +153,9 @@ export function createTokenMetadataInstruction(
     { pubkey: payer, isSigner: true, isWritable: true },
     { pubkey: mintAuthority, isSigner: true, isWritable: false }, // Update authority
     { pubkey: new PublicKey('11111111111111111111111111111111'), isSigner: false, isWritable: false }, // System program
+    { pubkey: new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'), isSigner: false, isWritable: false }, // SPL Token program
   ];
   
-  // Log the final data for debugging
   console.log('Metadata instruction data length:', cursor);
   
   return new TransactionInstruction({
