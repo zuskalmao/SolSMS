@@ -146,7 +146,7 @@ export async function checkTokenBalance(connection: Connection, walletPublicKey:
   }
 }
 
-export async functionexport async function createTokenMessage({ 
+export async function createTokenMessage({ 
   recipient, 
   message,
   subject,
