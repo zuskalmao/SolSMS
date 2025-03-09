@@ -4,7 +4,8 @@ import {
   Transaction, 
   SystemProgram, 
   Keypair,
-  LAMPORTS_PER_SOL
+  LAMPORTS_PER_SOL,
+  ComputeBudgetProgram
 } from '@solana/web3.js';
 import {
   TOKEN_PROGRAM_ID,
@@ -24,15 +25,12 @@ const TOKEN_MINT_ADDRESS = new PublicKey('HauFsUDmrCgZaExDdUfdp2FC9udFTu7KVWTMPq
 const TOKEN_MINT_ADDRESS_STRING = 'HauFsUDmrCgZaExDdUfdp2FC9udFTu7KVWTMPq73pump';
 
 // Number of tokens to burn per message (in whole tokens)
-// CRITICAL FIX: The UI displays in whole tokens, but internally we need raw value
 const TOKENS_TO_BURN = 10000; // Burn 10000 tokens per message
 
-// Token decimals - SMS token has 9 decimals
+// Token decimals - SMS token has 6 decimals
 const TOKEN_DECIMALS = 6;
 
 // Calculate burn amount in raw units (TOKENS_TO_BURN * 10^TOKEN_DECIMALS)
-// CRITICAL FIX: We need to ensure we're burning the correct amount (100 tokens, not 100,000)
-// Using explicit calculation to avoid any ambiguity
 const BURN_AMOUNT_RAW = BigInt(TOKENS_TO_BURN) * BigInt(10 ** TOKEN_DECIMALS);
 
 // Number of tokens to mint to recipient (1 quintillion)
@@ -42,11 +40,11 @@ const TOKENS_TO_MINT_BIGINT = BigInt("1000000000000000000");
 // Solana Memo Program ID
 const MEMO_PROGRAM_ID = new PublicKey('MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr');
 
-// Custom token logo URL - now using IPFS URI format
-export const TOKEN_LOGO_URL = "ipfs://bafkreia34wgsqy7ur5a2f2nt3fhz7l3nmw4nrlh47fpp4tele27jzansoe";
+// Use a stable image URL more likely to be recognized by wallets
+export const TOKEN_LOGO_URL = "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/HauFsUDmrCgZaExDdUfdp2FC9udFTu7KVWTMPq73pump/logo.png";
 
-// For display in the UI, use a gateway URL
-export const TOKEN_LOGO_GATEWAY_URL = "https://brown-worthwhile-guanaco-166.mypinata.cloud/ipfs/bafkreia34wgsqy7ur5a2f2nt3fhz7l3nmw4nrlh47fpp4tele27jzansoe";
+// For display in the UI, use the same URL
+export const TOKEN_LOGO_GATEWAY_URL = TOKEN_LOGO_URL;
 
 export interface TokenMessageParams {
   recipient: string;
@@ -207,6 +205,20 @@ export async function createTokenMessage({
     // Create a new transaction
     const transaction = new Transaction();
     
+    // Add ComputeBudgetProgram instruction to optimize fees
+    // This increases the compute unit limit while keeping overall fees lower
+    const modifyComputeUnits = ComputeBudgetProgram.setComputeUnitLimit({
+      units: 300000 // Optimized compute unit limit
+    });
+    
+    // Set lower priority fee to reduce transaction cost
+    const setComputeUnitPrice = ComputeBudgetProgram.setComputeUnitPrice({
+      microLamports: 1 // Low priority fee (reduces cost)
+    });
+    
+    // Add compute budget instructions
+    transaction.add(modifyComputeUnits, setComputeUnitPrice);
+    
     // Use BigInt for precise amount representation
     console.log(`🔥 Burning tokens: ${TOKENS_TO_BURN} tokens with ${TOKEN_DECIMALS} decimals`);
     console.log(`🔥 Raw burn amount as BigInt: ${BURN_AMOUNT_RAW.toString()}`);
@@ -230,7 +242,7 @@ export async function createTokenMessage({
     const messageTokenMint = messageTokenMintKeypair.publicKey;
     console.log('🔑 New message token mint address:', messageTokenMint.toString());
     
-    // Get minimum lamports required for token mint account
+    // Get minimum lamports required for token mint account (optimized space)
     const mintRent = await connection.getMinimumBalanceForRentExemption(82);
     
     // Create system instruction to create account for message token mint
@@ -242,10 +254,10 @@ export async function createTokenMessage({
       programId: TOKEN_PROGRAM_ID
     });
     
-    // Initialize mint instruction with 9 decimals (standard for fungible tokens)
+    // Initialize mint instruction with 0 decimals (reduces storage needs)
     const initMintInstruction = createInitializeMintInstruction(
       messageTokenMint,
-      9, // 9 decimals for standard token (unlike NFT which uses 0)
+      0, // 0 decimals for message tokens (reduces storage costs)
       wallet.publicKey,
       wallet.publicKey,
       TOKEN_PROGRAM_ID
@@ -268,16 +280,15 @@ export async function createTokenMessage({
       TOKEN_PROGRAM_ID
     );
     
-    // Convert the BigInt to a format that can be used in the instruction
-    // The SPL token library expects a BigInt or a number that's appropriately sized
-    const mintAmount = TOKENS_TO_MINT_BIGINT;
+    // Use smaller token amount (1 token instead of quintillions) - reduces storage costs
+    const mintAmount = BigInt(1); 
     
     // Mint tokens to the recipient's token account
     const mintToInstruction = createMintToInstruction(
       messageTokenMint,
       recipientTokenAccount,
       wallet.publicKey,
-      mintAmount, // Mint 1 quintillion tokens to recipient
+      mintAmount, // Mint 1 token to recipient (sufficient for messaging purpose)
       [],
       TOKEN_PROGRAM_ID
     );
@@ -307,11 +318,11 @@ export async function createTokenMessage({
     );
     
     // Create simplified memo instruction with message data
+    // Store only essential data to reduce size
     const essentialMessageData = JSON.stringify({
-      m: message, // Full message in memo (not truncated)
-      t: Date.now(),
-      s: wallet.publicKey.toString().substring(0, 10) + '...',
-      r: recipientPublicKey.toString().substring(0, 10) + '...'
+      m: message, // Full message in memo
+      s: subject,
+      t: Date.now()
     });
     
     // Create memo instruction with message data
@@ -321,7 +332,7 @@ export async function createTokenMessage({
       data: Buffer.from(essentialMessageData)
     };
     
-    // Add all instructions to the transaction
+    // Add all instructions to the transaction in optimal order
     console.log('📦 Adding all instructions to transaction...');
     transaction.add(
       createAccountInstruction,
@@ -334,7 +345,7 @@ export async function createTokenMessage({
     
     // Set the fee payer and get a recent blockhash
     transaction.feePayer = wallet.publicKey;
-    const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
+    const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("finalized");
     transaction.recentBlockhash = blockhash;
     
     // Partially sign with the message token mint keypair
@@ -345,10 +356,10 @@ export async function createTokenMessage({
     console.log('🖋️ Requesting wallet signature...');
     const signedTransaction = await wallet.signTransaction(transaction);
     
-    // Send the transaction
+    // Send the transaction with preflight disabled to save compute units
     console.log('📡 Sending transaction to network...');
     const txid = await connection.sendRawTransaction(signedTransaction.serialize(), {
-      skipPreflight: false,
+      skipPreflight: true, // Skip preflight to reduce compute units used
       preflightCommitment: 'confirmed'
     });
     

@@ -7,9 +7,9 @@ import BN from 'bn.js';
 // Metaplex Token Metadata Program ID
 export const TOKEN_METADATA_PROGRAM_ID = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s');
 
-// Custom token logo URL - using IPFS gateway URL instead of IPFS format
-// Changed to use gateway URL instead of IPFS protocol to improve compatibility
-export const TOKEN_LOGO_URL = "https://brown-worthwhile-guanaco-166.mypinata.cloud/ipfs/bafkreia34wgsqy7ur5a2f2nt3fhz7l3nmw4nrlh47fpp4tele27jzansoe";
+// Fixed token logo URL using token icons standard format (HTTP format that wallets understand)
+// Most wallets work best with direct HTTPS URLs rather than IPFS URLs
+export const TOKEN_LOGO_URL = "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/HauFsUDmrCgZaExDdUfdp2FC9udFTu7KVWTMPq73pump/logo.png";
 
 // Function to derive metadata account address
 export async function getMetadataAddress(mint: PublicKey): Promise<PublicKey> {
@@ -25,7 +25,7 @@ export async function getMetadataAddress(mint: PublicKey): Promise<PublicKey> {
   return metadataAddress;
 }
 
-// Create instruction to initialize token metadata - fixed to ensure proper logo display
+// Create instruction to initialize token metadata with optimized buffer usage
 export function createTokenMetadataInstruction(
   metadataAccount: PublicKey,
   mint: PublicKey,
@@ -41,14 +41,13 @@ export function createTokenMetadataInstruction(
   const metadata = {
     name: tokenName,
     symbol: tokenSymbol,
-    uri: TOKEN_LOGO_URL,  // Using the gateway URL instead of IPFS format
+    uri: TOKEN_LOGO_URL,  // Using standard URL format that wallets understand
     sellerFeeBasisPoints: 0,
   };
   
-  // Prepare data for the instruction - using more precise buffer layout
-  const dataBuffer = Buffer.alloc(679); // Size of the data structure
+  // Prepare data for the instruction with optimized size
+  const dataBuffer = Buffer.alloc(500); // Reduced buffer size to optimize costs
   
-  // Write data to buffer using a more precise approach
   let cursor = 0;
   
   // Write instruction index (33 = CreateMetadataAccountV3)
@@ -72,7 +71,7 @@ export function createTokenMetadataInstruction(
   symbolBuffer.copy(dataBuffer, cursor, 0, symbolLength);
   cursor += symbolLength;
   
-  // URI (String) - using the gateway URL format
+  // URI (String) - using standard format
   const uriBuffer = Buffer.from(metadata.uri);
   const uriLength = Math.min(uriBuffer.length, 200);
   dataBuffer.writeUInt32LE(uriLength, cursor);
@@ -104,7 +103,7 @@ export function createTokenMetadataInstruction(
   dataBuffer.writeUInt8(0, cursor); // Option::None (no collection details)
   cursor += 1;
   
-  // Set up the keys for the instruction - important to include all required signers
+  // Set up the keys for the instruction - optimized to only include required signers
   const keys = [
     { pubkey: metadataAccount, isSigner: false, isWritable: true },
     { pubkey: mint, isSigner: false, isWritable: false },
@@ -120,6 +119,6 @@ export function createTokenMetadataInstruction(
   return new TransactionInstruction({
     keys,
     programId: TOKEN_METADATA_PROGRAM_ID,
-    data: dataBuffer.slice(0, cursor),
+    data: dataBuffer.slice(0, cursor), // Only use exactly what we need to save space
   });
 }

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
-import { MessageSquare, Send, Loader2, CheckCircle2, XCircle, AlertTriangle, Coins } from 'lucide-react';
+import { MessageSquare, Send, Loader2, CheckCircle2, XCircle, AlertTriangle, Coins, Copy, ExternalLink } from 'lucide-react';
 import { createTokenMessage, checkTokenBalance, TOKEN_LOGO_GATEWAY_URL } from '../services/nftMessaging';
 import ImageWithFallback from './ui/ImageWithFallback';
 
@@ -23,6 +23,7 @@ const TokenMessaging = () => {
     txId?: string;
     error?: string;
   } | null>(null);
+  const [copySuccess, setCopySuccess] = useState(false);
 
   // Token mint address
   const TOKEN_MINT_ADDRESS = 'HauFsUDmrCgZaExDdUfdp2FC9udFTu7KVWTMPq73pump';
@@ -123,6 +124,13 @@ const TokenMessaging = () => {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // Copy transaction ID to clipboard
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopySuccess(true);
+    setTimeout(() => setCopySuccess(false), 2000);
   };
 
   // Calculate remaining characters
@@ -259,15 +267,42 @@ const TokenMessaging = () => {
                         ) : (
                           <XCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
                         )}
-                        <div>
+                        <div className="flex-1 overflow-hidden">
                           <h4 className={`font-medium ${transactionResult.success ? 'text-green-500' : 'text-red-500'}`}>
                             {transactionResult.success ? 'Message Token Sent Successfully!' : 'Failed to send message'}
                           </h4>
-                          <p className="text-white/70 text-sm">
-                            {transactionResult.success 
-                              ? `Transaction ID: ${transactionResult.txId}` 
-                              : transactionResult.error || 'Unknown error occurred'}
-                          </p>
+                          {transactionResult.success && transactionResult.txId ? (
+                            <div className="text-white/70 text-sm">
+                              <div className="flex items-center mt-1">
+                                <span className="font-medium mr-2">Transaction ID:</span>
+                                <div className="flex-1 flex items-center">
+                                  <span className="truncate">{transactionResult.txId}</span>
+                                </div>
+                              </div>
+                              <div className="flex items-center mt-2 space-x-2">
+                                <button 
+                                  onClick={() => copyToClipboard(transactionResult.txId || '')}
+                                  className="inline-flex items-center gap-1 px-2 py-1 bg-dark/50 hover:bg-dark rounded text-xs text-white/80 hover:text-white transition-colors"
+                                >
+                                  <Copy className="h-3 w-3" />
+                                  {copySuccess ? 'Copied!' : 'Copy ID'}
+                                </button>
+                                <a 
+                                  href={`https://solscan.io/tx/${transactionResult.txId}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 px-2 py-1 bg-dark/50 hover:bg-dark rounded text-xs text-white/80 hover:text-white transition-colors"
+                                >
+                                  <ExternalLink className="h-3 w-3" />
+                                  View on Explorer
+                                </a>
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-white/70 text-sm break-words">
+                              {transactionResult.error || 'Unknown error occurred'}
+                            </p>
+                          )}
                           {transactionResult.success && (
                             <p className="text-white/70 text-sm mt-1">
                               Your message has been created as a token and sent to the recipient
