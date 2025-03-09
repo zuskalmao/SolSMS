@@ -124,36 +124,18 @@ export async function createAndUploadTokenMetadata(
     // Use the static logo instead of uploading a new one
     const logoResult = await getStaticSmsLogo();
     
-    // Create the metadata JSON object following Metaplex standards
+    // Create simplified metadata JSON following the example format
     const metadata = {
       name: tokenName,
       symbol: tokenSymbol,
+      image: logoResult.gatewayUrl, // Use the gateway URL for better compatibility
+      showName: true,
       description: `Message token created with $SMS token messaging service`,
-      image: logoResult.ipfsUrl, // Use the static IPFS URL for the image
-      external_url: "https://smstoken.com",
-      attributes: [
-        {
-          trait_type: "Token Type",
-          value: "Message"
-        },
-        {
-          trait_type: "Created With",
-          value: "SMS Token Messaging"
-        },
-        {
-          trait_type: "Timestamp",
-          value: Date.now().toString()
-        }
-      ],
-      properties: {
-        files: [
-          {
-            uri: logoResult.ipfsUrl,
-            type: "image/svg+xml"
-          }
-        ],
-        category: "image",
-        creators: []
+      extensions: {
+        website: "https://smstoken.com",
+        telegram: "",
+        twitter: "",
+        discord: "Messaging,SPL,SMS"
       }
     };
     
