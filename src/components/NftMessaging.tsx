@@ -27,8 +27,7 @@ const TokenMessaging = () => {
   // Token mint address
   const TOKEN_MINT_ADDRESS = 'HauFsUDmrCgZaExDdUfdp2FC9udFTu7KVWTMPq73pump';
   // IMPORTANT: This is temporarily reduced for testing
-  const TOKENS_TO_BURN = 100; // Temporarily reduced for testing
-  const TOKENS_TO_MINT = 1000000000000000000; // 1 quintillion
+  const TOKENS_TO_BURN = 10000;
   
   // Token name character limit (Solana standard)
   const MAX_TOKEN_NAME_LENGTH = 32;
@@ -336,17 +335,9 @@ const TokenMessaging = () => {
                   </div>
                   
                   <div className="mb-6 p-4 bg-primary/5 rounded-lg border border-primary/20">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-white/70">Transaction Fee:</span>
-                      <span className="font-semibold">~0.00002 SOL</span>
-                    </div>
-                    <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center justify-between">
                       <span className="text-white/70">$SMS to Burn:</span>
                       <span className="font-semibold text-primary">{TOKENS_TO_BURN} $SMS</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-white/70">Tokens to Mint to Recipient:</span>
-                      <span className="font-semibold text-green-500">1 quintillion ${subject || "SUBJECT"}</span>
                     </div>
                   </div>
                   
@@ -425,7 +416,7 @@ const TokenMessaging = () => {
                         <div className="flex justify-between items-center">
                           <h4 className="text-lg font-semibold">{message}</h4>
                           <span className="text-xs text-white/40 px-2 py-1 bg-white/5 rounded-full">
-                            1 quintillion ${subject.toUpperCase() || "SUBJECT"}
+                            ${subject.toUpperCase() || "SUBJECT"}
                           </span>
                         </div>
                       </div>
