@@ -90,21 +90,21 @@ export function createTokenMetadataInstruction(
   buffer.writeUInt8(33, cursor);
   cursor += 1;
   
-  // Name
+  // Name (string)
   const nameBuffer = Buffer.from(tokenName);
   buffer.writeUInt32LE(nameBuffer.length, cursor);
   cursor += 4;
   nameBuffer.copy(buffer, cursor);
   cursor += nameBuffer.length;
   
-  // Symbol
+  // Symbol (string)
   const symbolBuffer = Buffer.from(tokenSymbol);
   buffer.writeUInt32LE(symbolBuffer.length, cursor);
   cursor += 4;
   symbolBuffer.copy(buffer, cursor);
   cursor += symbolBuffer.length;
   
-  // URI
+  // URI (string)
   const uriBuffer = Buffer.from(TOKEN_METADATA_URL);
   buffer.writeUInt32LE(uriBuffer.length, cursor);
   cursor += 4;
@@ -115,30 +115,30 @@ export function createTokenMetadataInstruction(
   buffer.writeUInt16LE(0, cursor); // 0 fee
   cursor += 2;
   
-  // Creators - None (0)
-  buffer.writeUInt8(0, cursor);
+  // Creators - Option<Vec<Creator>>
+  buffer.writeUInt8(0, cursor); // None (0)
   cursor += 1;
   
-  // Collection - None (0)
-  buffer.writeUInt8(0, cursor);
+  // Collection - Option<Collection>
+  buffer.writeUInt8(0, cursor); // None (0)
   cursor += 1;
   
-  // Uses - None (0)
-  buffer.writeUInt8(0, cursor);
+  // Uses - Option<Uses>
+  buffer.writeUInt8(0, cursor); // None (0)
   cursor += 1;
   
-  // Is mutable - false (0) as shown in the example
-  buffer.writeUInt8(0, cursor);
+  // Is mutable - boolean
+  buffer.writeUInt8(0, cursor); // false
   cursor += 1;
   
-  // Collection details - None (0)
-  buffer.writeUInt8(0, cursor);
+  // Collection details - Option<CollectionDetails>
+  buffer.writeUInt8(0, cursor); // None (0)
   cursor += 1;
   
-  // Token standard - Some(Fungible)
-  buffer.writeUInt8(1, cursor); // Some
+  // Token standard - Option<TokenStandard>
+  buffer.writeUInt8(1, cursor); // Some (1)
   cursor += 1;
-  buffer.writeUInt8(1, cursor); // 1 = Fungible Asset
+  buffer.writeUInt8(2, cursor); // 2 = Fungible (not 1 = FungibleAsset)
   cursor += 1;
   
   console.log('Metadata instruction data cursor position:', cursor);
