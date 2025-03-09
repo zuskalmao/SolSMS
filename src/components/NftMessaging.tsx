@@ -256,7 +256,7 @@ const TokenMessaging = () => {
                     <div className={`mb-6 p-4 rounded-lg ${transactionResult.success ? 'bg-green-900/20 border border-green-500/30' : 'bg-red-900/20 border border-red-500/30'}`}>
                       <div className="flex items-start gap-3">
                         {transactionResult.success ? (
-                          <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0                           <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
+                          <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
                         ) : (
                           <XCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
                         )}
