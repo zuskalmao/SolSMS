@@ -2,43 +2,14 @@ import {
   PublicKey,
   TransactionInstruction
 } from '@solana/web3.js';
-import { getStaticSmsLogo } from './pinataService';
+import BN from 'bn.js';
+import { SMS_LOGO_IPFS_GATEWAY } from './pinataService';
 
 // Metaplex Token Metadata Program ID
 export const TOKEN_METADATA_PROGRAM_ID = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s');
 
-// These will be set from the static logo info
-let TOKEN_IMAGE_URL = "";
-let TOKEN_METADATA_URL = "";
-let TOKEN_IMAGE_GATEWAY_URL = "";
-let TOKEN_METADATA_GATEWAY_URL = "";
-
-// Initialize the token image URLs - should be called early in the application lifecycle
-export async function initializeTokenImageUrls() {
-  try {
-    // Use the static logo instead of uploading
-    const result = await getStaticSmsLogo();
-    
-    TOKEN_IMAGE_URL = result.ipfsUrl;
-    TOKEN_IMAGE_GATEWAY_URL = result.gatewayUrl;
-    
-    console.log('📊 Initialized token image URLs:');
-    console.log('IPFS URL:', TOKEN_IMAGE_URL);
-    console.log('Gateway URL:', TOKEN_IMAGE_GATEWAY_URL);
-    
-    return result;
-  } catch (error) {
-    console.error('Failed to initialize token image URLs:', error);
-    // Use the static URL directly if there's an error
-    TOKEN_IMAGE_URL = "ipfs://bafkreia34wgsqy7ur5a2f2nt3fhz7l3nmw4nrlh47fpp4tele27jzansoe";
-    TOKEN_IMAGE_GATEWAY_URL = "https://brown-worthwhile-guanaco-166.mypinata.cloud/ipfs/bafkreia34wgsqy7ur5a2f2nt3fhz7l3nmw4nrlh47fpp4tele27jzansoe";
-    return {
-      ipfsUrl: TOKEN_IMAGE_URL,
-      gatewayUrl: TOKEN_IMAGE_GATEWAY_URL,
-      ipfsHash: "bafkreia34wgsqy7ur5a2f2nt3fhz7l3nmw4nrlh47fpp4tele27jzansoe"
-    };
-  }
-}
+// Using IPFS gateway URL for UI display (since browsers can't directly display ipfs:// links)
+export const TOKEN_LOGO_GATEWAY_URL = SMS_LOGO_IPFS_GATEWAY;
 
 // Function to derive metadata account address
 export async function getMetadataAddress(mint: PublicKey): Promise<PublicKey> {
@@ -54,111 +25,86 @@ export async function getMetadataAddress(mint: PublicKey): Promise<PublicKey> {
   return metadataAddress;
 }
 
-// Set the metadata URL for a specific token
-export function setTokenMetadataUrl(metadataUrl: string, gatewayUrl: string) {
-  TOKEN_METADATA_URL = metadataUrl;
-  TOKEN_METADATA_GATEWAY_URL = gatewayUrl;
-  console.log('Set token metadata URL:', TOKEN_METADATA_URL);
-}
-
-// Get the current token image gateway URL (for UI display)
-export function getTokenImageGatewayUrl(): string {
-  // If not yet initialized, return the static URL directly
-  if (!TOKEN_IMAGE_GATEWAY_URL) {
-    return "https://brown-worthwhile-guanaco-166.mypinata.cloud/ipfs/bafkreia34wgsqy7ur5a2f2nt3fhz7l3nmw4nrlh47fpp4tele27jzansoe";
-  }
-  return TOKEN_IMAGE_GATEWAY_URL;
-}
-
-// Utility function to write a string to a buffer
-function writeString(buffer: Buffer, offset: number, string: string): number {
-  // Write string length as u32 little-endian
-  buffer.writeUInt32LE(string.length, offset);
-  offset += 4;
-  
-  // Write string bytes
-  buffer.write(string, offset, string.length, 'utf8');
-  offset += string.length;
-  
-  return offset;
-}
-
-// Utility function to write Option<T> to a buffer
-function writeOption<T>(
-  buffer: Buffer, 
-  offset: number, 
-  value: T | null,
-  writer: (buffer: Buffer, offset: number, value: T) => number
-): number {
-  if (value === null) {
-    // Write None (0)
-    buffer.writeUInt8(0, offset);
-    offset += 1;
-  } else {
-    // Write Some (1)
-    buffer.writeUInt8(1, offset);
-    offset += 1;
-    
-    // Write the value
-    offset = writer(buffer, offset, value);
-  }
-  
-  return offset;
-}
-
-// Create instruction to initialize token metadata for a fungible SPL token
+// Create instruction to initialize token metadata with dynamically generated metadata URI
 export function createTokenMetadataInstruction(
   metadataAccount: PublicKey,
   mint: PublicKey,
   mintAuthority: PublicKey,
   payer: PublicKey,
   tokenName: string,  // Message as token name
-  tokenSymbol: string  // Subject as token symbol
+  tokenSymbol: string,  // Subject as token symbol
+  metadataUri: string   // IPFS URI to the metadata JSON
 ): TransactionInstruction {
   console.log('Creating token metadata with message as name:', tokenName);
-  console.log('Using metadata URI:', TOKEN_METADATA_URL);
+  console.log('Using metadata URI:', metadataUri);
   
-  // Create the buffer for instruction data
-  const buffer = Buffer.alloc(1024); // Buffer large enough for our data
-  let offset = 0;
+  // Create a simplified metadata structure following Metaplex standards exactly
+  const metadata = {
+    name: tokenName,
+    symbol: tokenSymbol,
+    uri: metadataUri,  // Using IPFS URI format for metadata
+    sellerFeeBasisPoints: 0,
+  };
   
-  // Write instruction discriminator (10 = CreateMetadataAccountV2)
-  // Using V2 instead of V3 as it has better compatibility
-  buffer.writeUInt8(10, offset);
-  offset += 1;
+  // Prepare data for the instruction with optimized size
+  const dataBuffer = Buffer.alloc(500); // Standard buffer size for metadata
   
-  // Write data struct for Metadata
+  let cursor = 0;
   
-  // Write name
-  offset = writeString(buffer, offset, tokenName);
+  // Write instruction index (33 = CreateMetadataAccountV3)
+  dataBuffer.writeUInt8(33, cursor);
+  cursor += 1;
   
-  // Write symbol
-  offset = writeString(buffer, offset, tokenSymbol);
+  // Write the metadata
+  // Name (String)
+  const nameBuffer = Buffer.from(metadata.name);
+  const nameLength = Math.min(nameBuffer.length, 32); // Limit to 32 chars
+  dataBuffer.writeUInt32LE(nameLength, cursor);
+  cursor += 4;
+  nameBuffer.copy(dataBuffer, cursor, 0, nameLength);
+  cursor += nameLength;
   
-  // Write uri
-  offset = writeString(buffer, offset, TOKEN_METADATA_URL);
+  // Symbol (String)
+  const symbolBuffer = Buffer.from(metadata.symbol);
+  const symbolLength = Math.min(symbolBuffer.length, 10); // Limit to 10 chars
+  dataBuffer.writeUInt32LE(symbolLength, cursor);
+  cursor += 4;
+  symbolBuffer.copy(dataBuffer, cursor, 0, symbolLength);
+  cursor += symbolLength;
   
-  // Write seller fee basis points (0 for no fees)
-  buffer.writeUInt16LE(0, offset);
-  offset += 2;
+  // URI (String) - using IPFS format for the metadata JSON
+  const uriBuffer = Buffer.from(metadata.uri);
+  const uriLength = Math.min(uriBuffer.length, 200);
+  dataBuffer.writeUInt32LE(uriLength, cursor);
+  cursor += 4;
+  uriBuffer.copy(dataBuffer, cursor, 0, uriLength);
+  cursor += uriLength;
   
-  // Write creators option (None)
-  buffer.writeUInt8(0, offset);
-  offset += 1;
+  // Seller fee basis points (u16)
+  dataBuffer.writeUInt16LE(metadata.sellerFeeBasisPoints, cursor);
+  cursor += 2;
   
-  // Write primary sale happened (false)
-  buffer.writeUInt8(0, offset);
-  offset += 1;
+  // Creator array (Option<Vec<Creator>>)
+  dataBuffer.writeUInt8(0, cursor); // Option::None (no creators)
+  cursor += 1;
   
-  // Write is mutable (false)
-  buffer.writeUInt8(0, offset);
-  offset += 1;
+  // Collection (Option<Collection>)
+  dataBuffer.writeUInt8(0, cursor); // Option::None (no collection)
+  cursor += 1;
   
-  // Skip optional fields in V2 which don't need to be included
+  // Uses (Option<Uses>)
+  dataBuffer.writeUInt8(0, cursor); // Option::None (no uses)
+  cursor += 1;
   
-  console.log('Metadata instruction data total size:', offset);
+  // Is mutable (bool)
+  dataBuffer.writeUInt8(1, cursor); // true
+  cursor += 1;
   
-  // Set up the required accounts for the instruction (for V2 format)
+  // Collection details (Option<CollectionDetails>)
+  dataBuffer.writeUInt8(0, cursor); // Option::None (no collection details)
+  cursor += 1;
+  
+  // Set up the keys for the instruction - optimized to only include required signers
   const keys = [
     { pubkey: metadataAccount, isSigner: false, isWritable: true },
     { pubkey: mint, isSigner: false, isWritable: false },
@@ -166,12 +112,14 @@ export function createTokenMetadataInstruction(
     { pubkey: payer, isSigner: true, isWritable: true },
     { pubkey: mintAuthority, isSigner: true, isWritable: false }, // Update authority
     { pubkey: new PublicKey('11111111111111111111111111111111'), isSigner: false, isWritable: false }, // System program
-    { pubkey: new PublicKey('SysvarRent111111111111111111111111111111111'), isSigner: false, isWritable: false }, // Rent sysvar
   ];
+  
+  // Log the final data for debugging
+  console.log('Metadata instruction data length:', cursor);
   
   return new TransactionInstruction({
     keys,
     programId: TOKEN_METADATA_PROGRAM_ID,
-    data: buffer.slice(0, offset), // Only use exactly what we need
+    data: dataBuffer.slice(0, cursor), // Only use exactly what we need
   });
 }
