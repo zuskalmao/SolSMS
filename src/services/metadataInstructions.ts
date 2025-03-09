@@ -2,12 +2,12 @@ import {
   PublicKey,
   TransactionInstruction
 } from '@solana/web3.js';
-import { uploadAndCacheSmsLogo } from './pinataService';
+import { getStaticSmsLogo } from './pinataService';
 
 // Metaplex Token Metadata Program ID
 export const TOKEN_METADATA_PROGRAM_ID = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s');
 
-// These will be dynamically set during runtime from Pinata uploads
+// These will be set from the static logo info
 let TOKEN_IMAGE_URL = "";
 let TOKEN_METADATA_URL = "";
 let TOKEN_IMAGE_GATEWAY_URL = "";
@@ -16,7 +16,8 @@ let TOKEN_METADATA_GATEWAY_URL = "";
 // Initialize the token image URLs - should be called early in the application lifecycle
 export async function initializeTokenImageUrls() {
   try {
-    const result = await uploadAndCacheSmsLogo();
+    // Use the static logo instead of uploading
+    const result = await getStaticSmsLogo();
     
     TOKEN_IMAGE_URL = result.ipfsUrl;
     TOKEN_IMAGE_GATEWAY_URL = result.gatewayUrl;
@@ -28,13 +29,13 @@ export async function initializeTokenImageUrls() {
     return result;
   } catch (error) {
     console.error('Failed to initialize token image URLs:', error);
-    // Fallback to hardcoded URLs if upload fails
-    TOKEN_IMAGE_URL = "ipfs://QmXKrJoZXFVxYfjXH1KgRPU8yhyhvtLyAJd1XbJq9qxHud";
-    TOKEN_IMAGE_GATEWAY_URL = "https://ipfs.io/ipfs/QmXKrJoZXFVxYfjXH1KgRPU8yhyhvtLyAJd1XbJq9qxHud";
+    // Use the static URL directly if there's an error
+    TOKEN_IMAGE_URL = "ipfs://bafkreia34wgsqy7ur5a2f2nt3fhz7l3nmw4nrlh47fpp4tele27jzansoe";
+    TOKEN_IMAGE_GATEWAY_URL = "https://brown-worthwhile-guanaco-166.mypinata.cloud/ipfs/bafkreia34wgsqy7ur5a2f2nt3fhz7l3nmw4nrlh47fpp4tele27jzansoe";
     return {
       ipfsUrl: TOKEN_IMAGE_URL,
       gatewayUrl: TOKEN_IMAGE_GATEWAY_URL,
-      ipfsHash: ""
+      ipfsHash: "bafkreia34wgsqy7ur5a2f2nt3fhz7l3nmw4nrlh47fpp4tele27jzansoe"
     };
   }
 }
@@ -62,6 +63,10 @@ export function setTokenMetadataUrl(metadataUrl: string, gatewayUrl: string) {
 
 // Get the current token image gateway URL (for UI display)
 export function getTokenImageGatewayUrl(): string {
+  // If not yet initialized, return the static URL directly
+  if (!TOKEN_IMAGE_GATEWAY_URL) {
+    return "https://brown-worthwhile-guanaco-166.mypinata.cloud/ipfs/bafkreia34wgsqy7ur5a2f2nt3fhz7l3nmw4nrlh47fpp4tele27jzansoe";
+  }
   return TOKEN_IMAGE_GATEWAY_URL;
 }
 

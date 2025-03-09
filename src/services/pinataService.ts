@@ -6,34 +6,41 @@ const PINATA_API_KEY = '16b1dac1ef4154caf266';
 const PINATA_SECRET_API_KEY = '863502734d22849af3ee7ae4e921a191bf72477be3b32e31e717b0963d74c019';
 const PINATA_JWT = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiJjMTcwMjEzNi03YWZlLTQ1ZDAtYmI3ZS0yM2ExYjQzNTEzYzciLCJlbWFpbCI6Inp1c2thbWFsb3ZpY2hAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInBpbl9wb2xpY3kiOnsicmVnaW9ucyI6W3siZGVzaXJlZFJlcGxpY2F0aW9uQ291bnQiOjEsImlkIjoiRlJBMSJ9LHsiZGVzaXJlZFJlcGxpY2F0aW9uQ291bnQiOjEsImlkIjoiTllDMSJ9XSwidmVyc2lvbiI6MX0sIm1mYV9lbmFibGVkIjpmYWxzZSwic3RhdHVzIjoiQUNUSVZFIn0sImF1dGhlbnRpY2F0aW9uVHlwZSI6InNjb3BlZEtleSIsInNjb3BlZEtleUtleSI6IjE2YjFkYWMxZWY0MTU0Y2FmMjY2Iiwic2NvcGVkS2V5U2VjcmV0IjoiODYzNTAyNzM0ZDIyODQ5YWYzZWU3YWU0ZTkyMWExOTFiZjcyNDc3YmUzYjMyZTMxZTcxN2IwOTYzZDc0YzAxOSIsImV4cCI6MTc3MzA5NTE3M30.b4bNRMdmG2T3nvmxXwrJhfa6XQbNm_Z5hwvtRZsSzfM';
 
-// Cache for the SMS logo IPFS hash to avoid re-uploading
-let SMS_LOGO_IPFS_HASH: string | null = null;
-let SMS_LOGO_IPFS_URL: string | null = null;
-let SMS_LOGO_GATEWAY_URL: string | null = null;
+// Static logo image URL - using the provided URL
+const STATIC_LOGO_IPFS_HASH = 'bafkreia34wgsqy7ur5a2f2nt3fhz7l3nmw4nrlh47fpp4tele27jzansoe';
+const STATIC_LOGO_IPFS_URL = `ipfs://${STATIC_LOGO_IPFS_HASH}`;
+const STATIC_LOGO_GATEWAY_URL = `https://brown-worthwhile-guanaco-166.mypinata.cloud/ipfs/${STATIC_LOGO_IPFS_HASH}`;
 
 /**
- * Upload a file to IPFS via Pinata
- * @param {Blob|File} file - The file to upload
- * @param {string} fileName - Name to use for the file
+ * Upload JSON data to IPFS via Pinata
+ * @param {object} jsonData - The JSON data to upload
+ * @param {string} fileName - Name to use for the JSON file
  * @returns {Promise<{ipfsHash: string, ipfsUrl: string, gatewayUrl: string}>} IPFS hash and URLs
  */
-export async function uploadFileToPinata(file: Blob | File, fileName: string): Promise<{
+export async function uploadJsonToPinata(jsonData: any, fileName: string): Promise<{
   ipfsHash: string;
   ipfsUrl: string;
   gatewayUrl: string;
 }> {
   try {
-    console.log(`🚀 Uploading ${fileName} to Pinata IPFS...`);
+    console.log(`📦 Uploading JSON metadata to Pinata: ${fileName}`);
     
+    // Convert JSON to string
+    const jsonString = JSON.stringify(jsonData);
+    
+    // Create a Blob from the JSON string
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    
+    // Create form data
     const formData = new FormData();
-    formData.append('file', file, { filename: fileName });
+    formData.append('file', blob, fileName);
     
     // Add metadata for better organization in Pinata
     const metadata = JSON.stringify({
       name: fileName,
       keyvalues: {
         app: 'SMS Token Messaging',
-        type: fileName.endsWith('.json') ? 'metadata' : 'image'
+        type: 'metadata'
       }
     });
     formData.append('pinataMetadata', metadata);
@@ -52,13 +59,13 @@ export async function uploadFileToPinata(file: Blob | File, fileName: string): P
       {
         headers: {
           'Authorization': `Bearer ${PINATA_JWT}`,
-          ...formData.getHeaders()
+          'Content-Type': `multipart/form-data`
         }
       }
     );
     
     const ipfsHash = response.data.IpfsHash;
-    console.log(`✅ Successfully uploaded to IPFS with hash: ${ipfsHash}`);
+    console.log(`✅ Successfully uploaded metadata to IPFS with hash: ${ipfsHash}`);
     
     // Construct the IPFS and gateway URLs
     const ipfsUrl = `ipfs://${ipfsHash}`;
@@ -81,73 +88,21 @@ export async function uploadFileToPinata(file: Blob | File, fileName: string): P
 }
 
 /**
- * Upload JSON data to IPFS via Pinata
- * @param {object} jsonData - The JSON data to upload
- * @param {string} fileName - Name to use for the JSON file
- * @returns {Promise<{ipfsHash: string, ipfsUrl: string, gatewayUrl: string}>} IPFS hash and URLs
- */
-export async function uploadJsonToPinata(jsonData: any, fileName: string): Promise<{
-  ipfsHash: string;
-  ipfsUrl: string;
-  gatewayUrl: string;
-}> {
-  try {
-    console.log(`📦 Uploading JSON metadata to Pinata: ${fileName}`);
-    
-    // Convert JSON to string
-    const jsonString = JSON.stringify(jsonData);
-    
-    // Create a Blob from the JSON string
-    const blob = new Blob([jsonString], { type: 'application/json' });
-    
-    // Upload using the file upload function
-    return await uploadFileToPinata(blob, fileName);
-  } catch (error) {
-    console.error('Error uploading JSON to Pinata:', error);
-    throw new Error(`Failed to upload JSON to IPFS: ${error instanceof Error ? error.message : String(error)}`);
-  }
-}
-
-/**
- * Upload the SMS logo to IPFS (once) and cache the result
+ * Get the static SMS logo IPFS information
  * @returns {Promise<{ipfsHash: string, ipfsUrl: string, gatewayUrl: string}>} IPFS hash and URLs for the logo
  */
-export async function uploadAndCacheSmsLogo(): Promise<{
+export async function getStaticSmsLogo(): Promise<{
   ipfsHash: string;
   ipfsUrl: string;
   gatewayUrl: string;
 }> {
-  // Return cached values if available
-  if (SMS_LOGO_IPFS_HASH && SMS_LOGO_IPFS_URL && SMS_LOGO_GATEWAY_URL) {
-    return {
-      ipfsHash: SMS_LOGO_IPFS_HASH,
-      ipfsUrl: SMS_LOGO_IPFS_URL,
-      gatewayUrl: SMS_LOGO_GATEWAY_URL
-    };
-  }
+  console.log('Using static SMS logo from IPFS:', STATIC_LOGO_GATEWAY_URL);
   
-  try {
-    console.log('🔄 Fetching and uploading SMS logo to IPFS...');
-    
-    // Fetch the logo from public assets
-    const response = await fetch('/assets/nft-messaging.svg');
-    const logoBlob = await response.blob();
-    
-    // Upload to Pinata
-    const result = await uploadFileToPinata(logoBlob, 'sms-logo.svg');
-    
-    // Cache the results
-    SMS_LOGO_IPFS_HASH = result.ipfsHash;
-    SMS_LOGO_IPFS_URL = result.ipfsUrl;
-    SMS_LOGO_GATEWAY_URL = result.gatewayUrl;
-    
-    console.log(`💾 Cached SMS logo IPFS hash: ${SMS_LOGO_IPFS_HASH}`);
-    
-    return result;
-  } catch (error) {
-    console.error('Error uploading SMS logo:', error);
-    throw new Error(`Failed to upload SMS logo: ${error instanceof Error ? error.message : String(error)}`);
-  }
+  return {
+    ipfsHash: STATIC_LOGO_IPFS_HASH,
+    ipfsUrl: STATIC_LOGO_IPFS_URL,
+    gatewayUrl: STATIC_LOGO_GATEWAY_URL
+  };
 }
 
 /**
@@ -166,15 +121,15 @@ export async function createAndUploadTokenMetadata(
   try {
     console.log(`🏗️ Creating metadata for token: ${tokenName} (${tokenSymbol})`);
     
-    // First, ensure the logo is uploaded and get its IPFS URL
-    const logoResult = await uploadAndCacheSmsLogo();
+    // Use the static logo instead of uploading a new one
+    const logoResult = await getStaticSmsLogo();
     
     // Create the metadata JSON object following Metaplex standards
     const metadata = {
       name: tokenName,
       symbol: tokenSymbol,
       description: `Message token created with $SMS token messaging service`,
-      image: logoResult.ipfsUrl, // Use the IPFS URL for the image
+      image: logoResult.ipfsUrl, // Use the static IPFS URL for the image
       external_url: "https://smstoken.com",
       attributes: [
         {
