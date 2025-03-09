@@ -69,7 +69,6 @@ export function createTokenMetadataInstruction(
   cursor += symbolLength;
   
   const uriBuffer = Buffer.from(metadata.uri);
-  const uriLength = uriBuffer  const uriBuffer = Buffer.from(metadata.uri);
   const uriLength = uriBuffer.length < 200 ? uriBuffer.length : 200; // Limit URI length
   dataBuffer.writeUInt32LE(uriLength, cursor);
   cursor += 4;
