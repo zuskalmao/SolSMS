@@ -25,7 +25,7 @@ const TOKEN_MINT_ADDRESS_STRING = 'HauFsUDmrCgZaExDdUfdp2FC9udFTu7KVWTMPq73pump'
 
 // Number of tokens to burn per message (in whole tokens)
 // CRITICAL FIX: The UI displays in whole tokens, but internally we need raw value
-const TOKENS_TO_BURN = 100; // Burn 100 tokens per message
+const TOKENS_TO_BURN = 10000; // Burn 10000 tokens per message
 
 // Token decimals - SMS token has 9 decimals
 const TOKEN_DECIMALS = 6;
