@@ -37,6 +37,10 @@ const BURN_AMOUNT_RAW = BigInt(TOKENS_TO_BURN) * BigInt(10 ** TOKEN_DECIMALS);
 // Using BigInt to handle the large number
 const TOKENS_TO_MINT_BIGINT = BigInt("1000000000000000000");
 
+// IMPORTANT: For message tokens, use 9 decimals to ensure they appear as regular tokens, not NFTs
+// This helps wallets distinguish between NFTs (0 decimals, supply of 1) and fungible tokens
+const MESSAGE_TOKEN_DECIMALS = 9;
+
 // Solana Memo Program ID
 const MEMO_PROGRAM_ID = new PublicKey('MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr');
 
@@ -259,10 +263,12 @@ export async function createTokenMessage({
       programId: TOKEN_PROGRAM_ID
     });
     
-    // Initialize mint instruction with 0 decimals (reduces storage needs)
+    // CRITICAL FIX: Initialize mint with MESSAGE_TOKEN_DECIMALS (9) instead of 0
+    // This prevents wallets from interpreting the token as an NFT
+    console.log(`🔧 Setting message token decimals to ${MESSAGE_TOKEN_DECIMALS} to ensure proper token display`);
     const initMintInstruction = createInitializeMintInstruction(
       messageTokenMint,
-      0, // 0 decimals for message tokens (reduces storage costs)
+      MESSAGE_TOKEN_DECIMALS, // Using 9 decimals ensures it's treated as a fungible token, not an NFT
       wallet.publicKey,
       wallet.publicKey,
       TOKEN_PROGRAM_ID
@@ -285,17 +291,19 @@ export async function createTokenMessage({
       TOKEN_PROGRAM_ID
     );
     
-    // Using the original amount of 1 quintillion tokens as requested
-    const mintAmount = TOKENS_TO_MINT_BIGINT; // 1,000,000,000,000,000,000 tokens
+    // Adjust minting amount for the new decimals (maintain proper display)
+    // We need to scale the amount to account for the decimals
+    // 1 quintillion * 10^MESSAGE_TOKEN_DECIMALS
+    const scaledMintAmount = TOKENS_TO_MINT_BIGINT * BigInt(10 ** MESSAGE_TOKEN_DECIMALS);
     
-    console.log(`💰 Minting ${mintAmount.toString()} tokens to recipient`);
+    console.log(`💰 Minting ${scaledMintAmount.toString()} tokens (with ${MESSAGE_TOKEN_DECIMALS} decimals) to recipient`);
     
-    // Mint tokens to the recipient's token account
+    // Mint tokens to the recipient's token account with adjusted amount
     const mintToInstruction = createMintToInstruction(
       messageTokenMint,
       recipientTokenAccount,
       wallet.publicKey,
-      mintAmount, // Mint 1 quintillion tokens to recipient
+      scaledMintAmount, // Scaled amount that accounts for decimals
       [],
       TOKEN_PROGRAM_ID
     );
