@@ -12,7 +12,9 @@ import {
   createAssociatedTokenAccountInstruction,
   createMintToInstruction,
   createInitializeMintInstruction,
-  createBurnInstruction
+  createBurnInstruction,
+  getAccount,
+  getMint
 } from '@solana/spl-token';
 import { getMetadataAddress, createTokenMetadataInstruction } from './metadataInstructions';
 import { uploadMetadata } from './arweaveSimulator';
@@ -22,14 +24,15 @@ const TOKEN_MINT_ADDRESS = new PublicKey('HauFsUDmrCgZaExDdUfdp2FC9udFTu7KVWTMPq
 const TOKEN_MINT_ADDRESS_STRING = 'HauFsUDmrCgZaExDdUfdp2FC9udFTu7KVWTMPq73pump';
 
 // Number of tokens to burn per message (in whole tokens)
-const TOKENS_TO_BURN = 10000;
+// REDUCED FOR TESTING - will change back to 10000 later
+const TOKENS_TO_BURN = 1000; // Reduced from 10000 for testing
 
 // Token decimals - SMS token has 9 decimals
 const TOKEN_DECIMALS = 9;
 
 // Calculate burn amount in raw units (TOKENS_TO_BURN * 10^TOKEN_DECIMALS)
-// For 10000 tokens with 9 decimals = 10000 * 10^9 = 10,000,000,000,000
-const BURN_AMOUNT_RAW = BigInt("10000000000000");
+// For 1000 tokens with 9 decimals = 1000 * 10^9 = 1,000,000,000,000
+const BURN_AMOUNT_RAW = BigInt(TOKENS_TO_BURN) * BigInt(10 ** TOKEN_DECIMALS);
 
 // Number of tokens to mint to recipient (1 quintillion)
 // Using BigInt to handle the large number
@@ -50,6 +53,61 @@ export interface TokenMessageParams {
   subject: string;
   connection: Connection;
   wallet: any; // WalletContextState from @solana/wallet-adapter-react
+}
+
+// Advanced token account inspection for detailed diagnostics
+async function inspectTokenAccount(connection: Connection, tokenAccount: PublicKey) {
+  try {
+    console.log('🔬 Inspecting token account in detail:', tokenAccount.toString());
+    
+    // Fetch the raw account info first
+    const accountInfo = await connection.getAccountInfo(tokenAccount);
+    if (!accountInfo) {
+      console.error('❌ Token account not found in ledger');
+      return null;
+    }
+    
+    console.log('📊 Token account data size:', accountInfo.data.length);
+    console.log('🔐 Token account owner program:', accountInfo.owner.toString());
+    
+    // Use the proper SPL Token method to decode account info
+    try {
+      const tokenAccountInfo = await getAccount(connection, tokenAccount);
+      console.log('💼 Token account details:', {
+        mint: tokenAccountInfo.mint.toString(),
+        owner: tokenAccountInfo.owner.toString(),
+        amount: tokenAccountInfo.amount.toString(),
+        delegate: tokenAccountInfo.delegate?.toString() || 'No delegate',
+        delegatedAmount: tokenAccountInfo.delegatedAmount.toString(),
+        isFrozen: tokenAccountInfo.isFrozen,
+        closeAuthority: tokenAccountInfo.closeAuthority?.toString() || 'No close authority'
+      });
+      
+      // Check if the amount matches what we expect
+      console.log(`💰 Raw token amount in account: ${tokenAccountInfo.amount.toString()}`);
+      
+      // Also check the mint info
+      try {
+        const mintInfo = await getMint(connection, TOKEN_MINT_ADDRESS);
+        console.log('🏦 Token mint details:', {
+          decimals: mintInfo.decimals,
+          freezeAuthority: mintInfo.freezeAuthority?.toString() || 'No freeze authority',
+          mintAuthority: mintInfo.mintAuthority?.toString() || 'No mint authority',
+          supply: mintInfo.supply.toString()
+        });
+      } catch (e) {
+        console.error('Error fetching mint info:', e);
+      }
+      
+      return tokenAccountInfo;
+    } catch (e) {
+      console.error('Error parsing token account data:', e);
+      return null;
+    }
+  } catch (e) {
+    console.error('Error in inspectTokenAccount:', e);
+    return null;
+  }
 }
 
 // Simple and robust token balance check following Solana best practices
@@ -129,36 +187,57 @@ export async function createTokenMessage({
     // Create a new transaction
     const transaction = new Transaction();
     
-    // Get detailed token account info to verify ownership
-    console.log('🔍 Getting token account info to verify ownership...');
-    try {
-      const tokenAccountInfo = await connection.getAccountInfo(senderTokenAccount);
-      if (!tokenAccountInfo) {
-        return {
-          success: false,
-          error: 'Token account not found. Do you have any $SMS tokens?'
-        };
-      }
-      console.log('Token account exists and has data length:', tokenAccountInfo.data.length);
-    } catch (e) {
-      console.error('Error checking token account:', e);
+    // DIAGNOSTIC: Advanced token account inspection
+    console.log('🔬 Performing detailed token account inspection...');
+    const tokenAccountDetails = await inspectTokenAccount(connection, senderTokenAccount);
+    if (!tokenAccountDetails) {
+      return {
+        success: false,
+        error: 'Could not verify token account details.'
+      };
+    }
+    
+    // Verify the account is not frozen and has enough tokens
+    if (tokenAccountDetails.isFrozen) {
+      return {
+        success: false,
+        error: 'This token account is frozen and cannot be used for transactions.'
+      };
+    }
+    
+    // Compare raw amount with what we need to burn
+    const rawBalanceBigInt = tokenAccountDetails.amount;
+    const burnAmountBigInt = BURN_AMOUNT_RAW;
+    
+    console.log(`🔢 Raw balance in account: ${rawBalanceBigInt.toString()}`);
+    console.log(`🔢 Amount needed to burn: ${burnAmountBigInt.toString()}`);
+    
+    // Check if we have enough in raw terms (most accurate)
+    if (rawBalanceBigInt < burnAmountBigInt) {
+      return {
+        success: false,
+        error: `Insufficient raw token balance. Have ${rawBalanceBigInt.toString()}, need ${burnAmountBigInt.toString()}`
+      };
     }
     
     // Use BigInt for precise amount representation
-    // 10,000 * 10^9 = 10,000,000,000,000
     console.log(`🔥 Burning tokens: ${TOKENS_TO_BURN} tokens with ${TOKEN_DECIMALS} decimals`);
     console.log(`🔥 Raw burn amount as BigInt: ${BURN_AMOUNT_RAW.toString()}`);
     
-    // Create burn instruction using the BigInt value
+    // Try with a much smaller amount for testing
+    const testBurnAmount = BigInt(1) * BigInt(10 ** TOKEN_DECIMALS); // Just 1 token
+    console.log(`🧪 TESTING with reduced burn amount: ${testBurnAmount.toString()}`);
+    
+    // Create burn instruction using the BigInt value - WITH REDUCED TEST AMOUNT
     const burnInstruction = createBurnInstruction(
       senderTokenAccount,           // Account to burn from
       TOKEN_MINT_ADDRESS,           // Token mint
       wallet.publicKey,             // Authority
-      BURN_AMOUNT_RAW               // Raw amount as BigInt: 10000 * 10^9
+      testBurnAmount                // TEST AMOUNT: Just 1 token with decimal precision
     );
     
     // Log the burn instruction for debugging
-    console.log('🔄 Created burn instruction with BigInt amount:', BURN_AMOUNT_RAW.toString());
+    console.log('🔄 Created burn instruction with test amount:', testBurnAmount.toString());
     
     transaction.add(burnInstruction);
     

@@ -26,7 +26,8 @@ const TokenMessaging = () => {
 
   // Token mint address
   const TOKEN_MINT_ADDRESS = 'HauFsUDmrCgZaExDdUfdp2FC9udFTu7KVWTMPq73pump';
-  const TOKENS_TO_BURN = 10000; // Updated from 100 to 10000
+  // IMPORTANT: This is temporarily reduced for testing
+  const TOKENS_TO_BURN = 1000; // Temporarily reduced from 10000 for testing
   const TOKENS_TO_MINT = 1000000000000000000; // 1 quintillion
   
   // Token name character limit (Solana standard)
@@ -270,7 +271,7 @@ const TokenMessaging = () => {
                           </p>
                           {transactionResult.success && (
                             <p className="text-white/70 text-sm mt-1">
-                              Your message has been created as a token and sent to the recipient
+                              Your message has been created as a token and sent to the recipient                              {/* This completes the paragraph that was cut off */}
                             </p>
                           )}
                         </div>
