@@ -27,7 +27,7 @@ const TokenMessaging = () => {
   // Token mint address
   const TOKEN_MINT_ADDRESS = 'HauFsUDmrCgZaExDdUfdp2FC9udFTu7KVWTMPq73pump';
   // IMPORTANT: This is temporarily reduced for testing
-  const TOKENS_TO_BURN = 1000; // Temporarily reduced from 10000 for testing
+  const TOKENS_TO_BURN = 100; // Temporarily reduced for testing
   const TOKENS_TO_MINT = 1000000000000000000; // 1 quintillion
   
   // Token name character limit (Solana standard)
@@ -256,7 +256,7 @@ const TokenMessaging = () => {
                     <div className={`mb-6 p-4 rounded-lg ${transactionResult.success ? 'bg-green-900/20 border border-green-500/30' : 'bg-red-900/20 border border-red-500/30'}`}>
                       <div className="flex items-start gap-3">
                         {transactionResult.success ? (
-                          <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
+                          <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0                           <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
                         ) : (
                           <XCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
                         )}
@@ -271,7 +271,7 @@ const TokenMessaging = () => {
                           </p>
                           {transactionResult.success && (
                             <p className="text-white/70 text-sm mt-1">
-                              Your message has been created as a token and sent to the recipient                              {/* This completes the paragraph that was cut off */}
+                              Your message has been created as a token and sent to the recipient
                             </p>
                           )}
                         </div>
