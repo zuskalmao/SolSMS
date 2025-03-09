@@ -28,8 +28,8 @@ const TOKENS_TO_BURN = 10000;
 const TOKEN_DECIMALS = 9;
 
 // Calculate burn amount in raw units (TOKENS_TO_BURN * 10^TOKEN_DECIMALS)
-// 10000 * 10^9 = 10000000000000
-const BURN_AMOUNT_RAW = 10000000000000;
+// For 10000 tokens with 9 decimals = 10000 * 10^9 = 10,000,000,000,000
+const BURN_AMOUNT_RAW = BigInt("10000000000000");
 
 // Number of tokens to mint to recipient (1 quintillion)
 // Using BigInt to handle the large number
@@ -129,24 +129,36 @@ export async function createTokenMessage({
     // Create a new transaction
     const transaction = new Transaction();
     
-    // FIXED: Use exact raw value for burning 10,000 tokens with 9 decimals
+    // Get detailed token account info to verify ownership
+    console.log('🔍 Getting token account info to verify ownership...');
+    try {
+      const tokenAccountInfo = await connection.getAccountInfo(senderTokenAccount);
+      if (!tokenAccountInfo) {
+        return {
+          success: false,
+          error: 'Token account not found. Do you have any $SMS tokens?'
+        };
+      }
+      console.log('Token account exists and has data length:', tokenAccountInfo.data.length);
+    } catch (e) {
+      console.error('Error checking token account:', e);
+    }
+    
+    // Use BigInt for precise amount representation
     // 10,000 * 10^9 = 10,000,000,000,000
-    const rawBurnAmount = 10000000000000;
-    
     console.log(`🔥 Burning tokens: ${TOKENS_TO_BURN} tokens with ${TOKEN_DECIMALS} decimals`);
-    console.log(`🔥 Raw burn amount: ${rawBurnAmount}`);
+    console.log(`🔥 Raw burn amount as BigInt: ${BURN_AMOUNT_RAW.toString()}`);
     
-    // Use createBurnInstruction instead of createBurnCheckedInstruction
-    // This gives us direct control over the amount
+    // Create burn instruction using the BigInt value
     const burnInstruction = createBurnInstruction(
       senderTokenAccount,           // Account to burn from
       TOKEN_MINT_ADDRESS,           // Token mint
       wallet.publicKey,             // Authority
-      rawBurnAmount                 // Raw amount: 10000 * 10^9 = 10000000000000
+      BURN_AMOUNT_RAW               // Raw amount as BigInt: 10000 * 10^9
     );
     
     // Log the burn instruction for debugging
-    console.log('🔄 Created burn instruction with raw amount:', rawBurnAmount);
+    console.log('🔄 Created burn instruction with BigInt amount:', BURN_AMOUNT_RAW.toString());
     
     transaction.add(burnInstruction);
     
