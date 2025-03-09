@@ -5,6 +5,7 @@ import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { MessageSquare, Send, Loader2, CheckCircle2, XCircle, AlertTriangle, Coins, Copy, ExternalLink } from 'lucide-react';
 import { createTokenMessage, checkTokenBalance, TOKEN_LOGO_URL } from '../services/nftMessaging';
 import ImageWithFallback from './ui/ImageWithFallback';
+import { initializeTokenImageUrls, getTokenImageGatewayUrl } from '../services/metadataInstructions';
 
 const TokenMessaging = () => {
   const { connection } = useConnection();
@@ -24,6 +25,7 @@ const TokenMessaging = () => {
     error?: string;
   } | null>(null);
   const [copySuccess, setCopySuccess] = useState(false);
+  const [logoUrl, setLogoUrl] = useState(TOKEN_LOGO_URL);
 
   // Token mint address
   const TOKEN_MINT_ADDRESS = 'HauFsUDmrCgZaExDdUfdp2FC9udFTu7KVWTMPq73pump';
@@ -33,6 +35,23 @@ const TokenMessaging = () => {
   // Token name character limit (Solana standard)
   const MAX_TOKEN_NAME_LENGTH = 32;
   const MAX_TOKEN_SYMBOL_LENGTH = 10;
+
+  useEffect(() => {
+    // Initialize the token image URLs and update UI when ready
+    const setupTokenImage = async () => {
+      try {
+        await initializeTokenImageUrls();
+        const gatewayUrl = getTokenImageGatewayUrl();
+        if (gatewayUrl) {
+          setLogoUrl(gatewayUrl);
+        }
+      } catch (error) {
+        console.error('Error setting up token image:', error);
+      }
+    };
+
+    setupTokenImage();
+  }, []);
 
   useEffect(() => {
     // Fetch token balance when wallet connects
@@ -188,7 +207,7 @@ const TokenMessaging = () => {
             UTILITY SHOWCASE
           </motion.p>
           <motion.h2 
-            className="text-3xl md:text-4xl font-            className="text-3xl md:text-4xl font-bold mb-4"
+            className="text-3xl md:text-4xl font-bold mb-4"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -441,7 +460,7 @@ const TokenMessaging = () => {
                       {/* Show custom token logo */}
                       <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
                         <ImageWithFallback
-                          src={TOKEN_LOGO_URL}
+                          src={logoUrl}
                           fallbackSrc="/assets/nft-messaging.svg"
                           alt={`${subject || "TOKEN"} logo`}
                           className="w-full h-full object-cover"
@@ -485,7 +504,7 @@ const TokenMessaging = () => {
                   <div className="flex items-center gap-3 mb-4">
                     <div className="w-12 h-12 rounded-full overflow-hidden">
                       <ImageWithFallback
-                        src={TOKEN_LOGO_URL}
+                        src={logoUrl}
                         fallbackSrc="/assets/nft-messaging.svg"
                         alt="Token logo"
                         className="w-full h-full object-cover"
@@ -501,7 +520,7 @@ const TokenMessaging = () => {
                     <div className="text-center p-6 border border-dashed border-gray/20 rounded-xl bg-dark/30 w-full">
                       <div className="w-14 h-14 mx-auto mb-4 rounded-full overflow-hidden">
                         <ImageWithFallback
-                          src={TOKEN_LOGO_URL}
+                          src={logoUrl}
                           fallbackSrc="/assets/nft-messaging.svg"
                           alt="Token logo"
                           className="w-full h-full object-cover"

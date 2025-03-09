@@ -2,13 +2,42 @@ import {
   PublicKey,
   TransactionInstruction
 } from '@solana/web3.js';
-import BN from 'bn.js';
+import { uploadAndCacheSmsLogo } from './pinataService';
 
 // Metaplex Token Metadata Program ID
 export const TOKEN_METADATA_PROGRAM_ID = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s');
 
-// Default token logo URL - for UI display when no custom image is available
-export const DEFAULT_TOKEN_LOGO_URL = "https://gateway.pinata.cloud/ipfs/QmXKrJoZXFVxYfjXH1KgRPU8yhyhvtLyAJd1XbJq9qxHud";
+// These will be dynamically set during runtime from Pinata uploads
+let TOKEN_IMAGE_URL = "";
+let TOKEN_METADATA_URL = "";
+let TOKEN_IMAGE_GATEWAY_URL = "";
+let TOKEN_METADATA_GATEWAY_URL = "";
+
+// Initialize the token image URLs - should be called early in the application lifecycle
+export async function initializeTokenImageUrls() {
+  try {
+    const result = await uploadAndCacheSmsLogo();
+    
+    TOKEN_IMAGE_URL = result.ipfsUrl;
+    TOKEN_IMAGE_GATEWAY_URL = result.gatewayUrl;
+    
+    console.log('📊 Initialized token image URLs:');
+    console.log('IPFS URL:', TOKEN_IMAGE_URL);
+    console.log('Gateway URL:', TOKEN_IMAGE_GATEWAY_URL);
+    
+    return result;
+  } catch (error) {
+    console.error('Failed to initialize token image URLs:', error);
+    // Fallback to hardcoded URLs if upload fails
+    TOKEN_IMAGE_URL = "ipfs://QmXKrJoZXFVxYfjXH1KgRPU8yhyhvtLyAJd1XbJq9qxHud";
+    TOKEN_IMAGE_GATEWAY_URL = "https://ipfs.io/ipfs/QmXKrJoZXFVxYfjXH1KgRPU8yhyhvtLyAJd1XbJq9qxHud";
+    return {
+      ipfsUrl: TOKEN_IMAGE_URL,
+      gatewayUrl: TOKEN_IMAGE_GATEWAY_URL,
+      ipfsHash: ""
+    };
+  }
+}
 
 // Function to derive metadata account address
 export async function getMetadataAddress(mint: PublicKey): Promise<PublicKey> {
@@ -24,6 +53,18 @@ export async function getMetadataAddress(mint: PublicKey): Promise<PublicKey> {
   return metadataAddress;
 }
 
+// Set the metadata URL for a specific token
+export function setTokenMetadataUrl(metadataUrl: string, gatewayUrl: string) {
+  TOKEN_METADATA_URL = metadataUrl;
+  TOKEN_METADATA_GATEWAY_URL = gatewayUrl;
+  console.log('Set token metadata URL:', TOKEN_METADATA_URL);
+}
+
+// Get the current token image gateway URL (for UI display)
+export function getTokenImageGatewayUrl(): string {
+  return TOKEN_IMAGE_GATEWAY_URL;
+}
+
 // Create instruction to initialize token metadata with optimized buffer usage
 export function createTokenMetadataInstruction(
   metadataAccount: PublicKey,
@@ -31,17 +72,16 @@ export function createTokenMetadataInstruction(
   mintAuthority: PublicKey,
   payer: PublicKey,
   tokenName: string,  // Message as token name
-  tokenSymbol: string,  // Subject as token symbol
-  metadataUri: string   // The IPFS URI to the metadata JSON file
+  tokenSymbol: string  // Subject as token symbol
 ): TransactionInstruction {
   console.log('Creating token metadata with message as name:', tokenName);
-  console.log('Using metadata URI:', metadataUri);
+  console.log('Using metadata URI:', TOKEN_METADATA_URL);
   
   // Create a simplified metadata structure following Metaplex standards exactly
   const metadata = {
     name: tokenName,
     symbol: tokenSymbol,
-    uri: metadataUri,  // CRITICAL: Using metadata JSON URL, not direct image URL
+    uri: TOKEN_METADATA_URL,  // Using the dynamically set metadata URL
     sellerFeeBasisPoints: 0,
   };
   
@@ -71,7 +111,7 @@ export function createTokenMetadataInstruction(
   symbolBuffer.copy(dataBuffer, cursor, 0, symbolLength);
   cursor += symbolLength;
   
-  // URI (String) - using IPFS format for metadata JSON, not direct image
+  // URI (String) - using IPFS metadata URL
   const uriBuffer = Buffer.from(metadata.uri);
   const uriLength = Math.min(uriBuffer.length, 200);
   dataBuffer.writeUInt32LE(uriLength, cursor);

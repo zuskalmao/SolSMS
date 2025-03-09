@@ -1,49 +1,33 @@
-// This is a simplified simulator for metadata storage
-// In a real implementation, this would actually upload data to Arweave or IPFS
+// This service is now replaced with actual Pinata IPFS functionality
+// We're keeping it here temporarily for backwards compatibility
+
+// Import the real IPFS implementation
+import { createAndUploadTokenMetadata } from './pinataService';
 
 /**
- * Example metadata JSON structure that follows Metaplex standards
- * This is what wallets and explorers expect to find at the metadata URI
+ * Upload metadata to IPFS via Pinata
+ * @param {object} metadata - The metadata to upload (unused, we generate our own)
+ * @returns {Promise<string>} - The IPFS URI for the metadata
  */
-const EXAMPLE_METADATA_JSON = {
-  name: "SMS Message",
-  symbol: "SMS",
-  description: "SMS Message Token on Solana",
-  image: "ipfs://QmXKrJoZXFVxYfjXH1KgRPU8yhyhvtLyAJd1XbJq9qxHud", // Direct link to image
-  external_url: "https://smstoken.com",
-  attributes: [
-    {
-      trait_type: "Token Type",
-      value: "Message"
-    }
-  ],
-  properties: {
-    files: [
-      {
-        uri: "ipfs://QmXKrJoZXFVxYfjXH1KgRPU8yhyhvtLyAJd1XbJq9qxHud",
-        type: "image/png"
-      }
-    ],
-    category: "image"
+export async function uploadMetadata(metadata: any, tokenName: string = "", tokenSymbol: string = ""): Promise<string> {
+  console.log('Uploading metadata to IPFS via Pinata...');
+  
+  if (!tokenName || !tokenSymbol) {
+    // Default to metadata properties if not specified
+    tokenName = metadata.name || "SMS Message";
+    tokenSymbol = metadata.symbol || "SMS";
   }
-};
-
-/**
- * Simulate uploading metadata to storage
- * @param {object} metadata - The metadata to upload
- * @returns {Promise<string>} - A simulated storage URL
- */
-export async function uploadMetadata(metadata: any): Promise<string> {
-  console.log('Simulating metadata upload to IPFS...');
   
-  // In a real implementation, we would upload this metadata to IPFS
-  // For now, we just return the hardcoded IPFS URI that points to our pre-uploaded JSON
-  
-  // Metadata JSON file would contain the structure shown in EXAMPLE_METADATA_JSON
-  // with the image field pointing to our SMS logo on IPFS
-  
-  // Return a simulated IPFS URL for the metadata JSON
-  return `ipfs://QmTXSaUArwpnfTbHtruRSHrH1GRrRRbULMCRkJ9ZXpXCMj`;
+  try {
+    // Use the actual implementation
+    const result = await createAndUploadTokenMetadata(tokenName, tokenSymbol);
+    console.log(`Metadata uploaded to IPFS: ${result.ipfsUrl}`);
+    return result.ipfsUrl;
+  } catch (error) {
+    console.error('Error uploading metadata to IPFS:', error);
+    // Fallback to a hardcoded URL in case of error
+    return "ipfs://QmTXSaUArwpnfTbHtruRSHrH1GRrRRbULMCRkJ9ZXpXCMj";
+  }
 }
 
 /**
@@ -76,7 +60,7 @@ export function generateTokenMetadata(
       files: [
         {
           uri: imageUrl,
-          type: "image/png"
+          type: "image/svg+xml"
         }
       ],
       category: "image"
