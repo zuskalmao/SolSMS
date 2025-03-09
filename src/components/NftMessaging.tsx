@@ -26,8 +26,8 @@ const TokenMessaging = () => {
 
   // Token mint address
   const TOKEN_MINT_ADDRESS = 'HauFsUDmrCgZaExDdUfdp2FC9udFTu7KVWTMPq73pump';
-  // Setting the correct token burn amount
-  const TOKENS_TO_BURN = 10000; // 10k tokens per message
+  // IMPORTANT: This is temporarily reduced for testing
+  const TOKENS_TO_BURN = 100; // Temporarily reduced for testing
   const TOKENS_TO_MINT = 1000000000000000000; // 1 quintillion
   
   // Token name character limit (Solana standard)

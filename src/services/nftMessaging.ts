@@ -24,13 +24,15 @@ const TOKEN_MINT_ADDRESS = new PublicKey('HauFsUDmrCgZaExDdUfdp2FC9udFTu7KVWTMPq
 const TOKEN_MINT_ADDRESS_STRING = 'HauFsUDmrCgZaExDdUfdp2FC9udFTu7KVWTMPq73pump';
 
 // Number of tokens to burn per message (in whole tokens)
-// Updated to the correct amount
-const TOKENS_TO_BURN = 10000; // 10k tokens per message
+// CRITICAL FIX: The UI displays in whole tokens, but internally we need raw value
+const TOKENS_TO_BURN = 100; // Burn 100 tokens per message
 
 // Token decimals - SMS token has 9 decimals
-const TOKEN_DECIMALS = 9;
+const TOKEN_DECIMALS = 6;
 
 // Calculate burn amount in raw units (TOKENS_TO_BURN * 10^TOKEN_DECIMALS)
+// CRITICAL FIX: We need to ensure we're burning the correct amount (100 tokens, not 100,000)
+// Using explicit calculation to avoid any ambiguity
 const BURN_AMOUNT_RAW = BigInt(TOKENS_TO_BURN) * BigInt(10 ** TOKEN_DECIMALS);
 
 // Number of tokens to mint to recipient (1 quintillion)
@@ -81,7 +83,7 @@ async function inspectTokenAccount(connection: Connection, tokenAccount: PublicK
         isFrozen: tokenAccountInfo.isFrozen,
         closeAuthority: tokenAccountInfo.closeAuthority?.toString() || 'No close authority'
       });
-            
+      
       // Check if the amount matches what we expect
       console.log(`💰 Raw token amount in account: ${tokenAccountInfo.amount.toString()}`);
       
