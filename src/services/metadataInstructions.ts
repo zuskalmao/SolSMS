@@ -7,9 +7,8 @@ import BN from 'bn.js';
 // Metaplex Token Metadata Program ID
 export const TOKEN_METADATA_PROGRAM_ID = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s');
 
-// Fixed token logo URL using token icons standard format (HTTP format that wallets understand)
-// Most wallets work best with direct HTTPS URLs rather than IPFS URLs
-export const TOKEN_LOGO_URL = "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/HauFsUDmrCgZaExDdUfdp2FC9udFTu7KVWTMPq73pump/logo.png";
+// Default token logo URL - for UI display when no custom image is available
+export const DEFAULT_TOKEN_LOGO_URL = "https://gateway.pinata.cloud/ipfs/QmXKrJoZXFVxYfjXH1KgRPU8yhyhvtLyAJd1XbJq9qxHud";
 
 // Function to derive metadata account address
 export async function getMetadataAddress(mint: PublicKey): Promise<PublicKey> {
@@ -32,21 +31,22 @@ export function createTokenMetadataInstruction(
   mintAuthority: PublicKey,
   payer: PublicKey,
   tokenName: string,  // Message as token name
-  tokenSymbol: string  // Subject as token symbol
+  tokenSymbol: string,  // Subject as token symbol
+  metadataUri: string   // The IPFS URI to the metadata JSON file
 ): TransactionInstruction {
   console.log('Creating token metadata with message as name:', tokenName);
-  console.log('Using logo URL:', TOKEN_LOGO_URL);
+  console.log('Using metadata URI:', metadataUri);
   
-  // Create a simplified metadata structure
+  // Create a simplified metadata structure following Metaplex standards exactly
   const metadata = {
     name: tokenName,
     symbol: tokenSymbol,
-    uri: TOKEN_LOGO_URL,  // Using standard URL format that wallets understand
+    uri: metadataUri,  // CRITICAL: Using metadata JSON URL, not direct image URL
     sellerFeeBasisPoints: 0,
   };
   
   // Prepare data for the instruction with optimized size
-  const dataBuffer = Buffer.alloc(500); // Reduced buffer size to optimize costs
+  const dataBuffer = Buffer.alloc(500); // Standard buffer size for metadata
   
   let cursor = 0;
   
@@ -71,7 +71,7 @@ export function createTokenMetadataInstruction(
   symbolBuffer.copy(dataBuffer, cursor, 0, symbolLength);
   cursor += symbolLength;
   
-  // URI (String) - using standard format
+  // URI (String) - using IPFS format for metadata JSON, not direct image
   const uriBuffer = Buffer.from(metadata.uri);
   const uriLength = Math.min(uriBuffer.length, 200);
   dataBuffer.writeUInt32LE(uriLength, cursor);
@@ -119,6 +119,6 @@ export function createTokenMetadataInstruction(
   return new TransactionInstruction({
     keys,
     programId: TOKEN_METADATA_PROGRAM_ID,
-    data: dataBuffer.slice(0, cursor), // Only use exactly what we need to save space
+    data: dataBuffer.slice(0, cursor), // Only use exactly what we need
   });
 }
