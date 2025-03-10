@@ -8,7 +8,7 @@ import { clusterApiUrl } from '@solana/web3.js';
 import Header from './components/Header';
 import Hero from './components/Hero';
 import Features from './components/Features';
-import TokenMessaging from './components/NftMessaging';
+import NftMessaging from './components/NftMessaging';
 import Tokenomics from './components/Tokenomics';
 import Community from './components/Community';
 import Footer from './components/Footer';
@@ -40,7 +40,7 @@ function App() {
             <main>
               <Hero />
               <Features />
-              <TokenMessaging />
+              <NftMessaging />
               <Tokenomics />
               <Community />
             </main>
