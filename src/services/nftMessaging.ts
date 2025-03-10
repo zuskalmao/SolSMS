@@ -5,7 +5,8 @@ import {
   SystemProgram, 
   Keypair,
   LAMPORTS_PER_SOL,
-  ComputeBudgetProgram
+  ComputeBudgetProgram,
+  sendAndConfirmTransaction
 } from '@solana/web3.js';
 import {
   TOKEN_PROGRAM_ID,
@@ -162,6 +163,15 @@ export async function createTokenMessage({
         error: 'Wallet not connected' 
       };
     }
+    
+    // Check if wallet supports signAndSendTransaction (required by Phantom)
+    if (!wallet.signAndSendTransaction) {
+      console.error('❌ Wallet does not support signAndSendTransaction');
+      return {
+        success: false,
+        error: 'Your wallet does not support the required signAndSendTransaction method. Please use Phantom wallet.'
+      };
+    }
 
     const recipientPublicKey = new PublicKey(recipient);
     console.log('📬 Recipient address:', recipientPublicKey.toString());
@@ -215,7 +225,7 @@ export async function createTokenMessage({
     const transaction = new Transaction();
     
     // Add ComputeBudgetProgram instruction to optimize fees
-    // UPDATED: Reduced compute unit limit from 300000 to 150000
+    // Reduced compute unit limit to 150000
     const modifyComputeUnits = ComputeBudgetProgram.setComputeUnitLimit({
       units: 150000 // Reduced compute unit limit
     });
@@ -247,6 +257,9 @@ export async function createTokenMessage({
     
     // Create a new token mint for the message
     console.log('🏭 Creating new message token mint...');
+    
+    // IMPORTANT CHANGE: For Phantom compatibility, we need to use a fresh Keypair
+    // but NOT sign with it. Phantom will handle all signatures.
     const messageTokenMintKeypair = Keypair.generate();
     const messageTokenMint = messageTokenMintKeypair.publicKey;
     console.log('🔑 New message token mint address:', messageTokenMint.toString());
@@ -263,8 +276,7 @@ export async function createTokenMessage({
       programId: TOKEN_PROGRAM_ID
     });
     
-    // CRITICAL FIX: Initialize mint with MESSAGE_TOKEN_DECIMALS (9) instead of 0
-    // This prevents wallets from interpreting the token as an NFT
+    // Initialize mint with MESSAGE_TOKEN_DECIMALS (9)
     console.log(`🔧 Setting message token decimals to ${MESSAGE_TOKEN_DECIMALS} to ensure proper token display`);
     const initMintInstruction = createInitializeMintInstruction(
       messageTokenMint,
@@ -310,8 +322,6 @@ export async function createTokenMessage({
     
     // Upload token metadata to IPFS via Pinata
     console.log('📤 Uploading token metadata to IPFS...');
-    // This call might fail in some environments due to network issues or CORS
-    // We'll handle that case gracefully
     let metadataUri;
     try {
       metadataUri = await uploadMetadataToIPFS(sanitizedMessage, sanitizedSymbol);
@@ -365,47 +375,75 @@ export async function createTokenMessage({
       memoInstruction
     );
     
-    // Set the fee payer and get a recent blockhash
+    // Set the fee payer 
     transaction.feePayer = wallet.publicKey;
-    const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("finalized");
+    
+    // Get a recent blockhash
+    const { blockhash } = await connection.getLatestBlockhash("finalized");
     transaction.recentBlockhash = blockhash;
     
-    // Partially sign with the message token mint keypair
-    console.log('✍️ Partially signing transaction with token mint keypair...');
-    transaction.partialSign(messageTokenMintKeypair);
+    // CRITICAL CHANGE: Do NOT sign the transaction ourselves
+    // Leave it unsigned for Phantom to sign with signAndSendTransaction
     
-    // Request wallet signature from the user
-    console.log('🖋️ Requesting wallet signature...');
-    const signedTransaction = await wallet.signTransaction(transaction);
+    console.log('🖋️ Using Phantom signAndSendTransaction...');
     
-    // Send the transaction with preflight disabled to save compute units
-    console.log('📡 Sending transaction to network...');
-    const txid = await connection.sendRawTransaction(signedTransaction.serialize(), {
-      skipPreflight: true, // Skip preflight to reduce compute units used
-      preflightCommitment: 'confirmed'
+    // We need to serialize the transaction to a format that Phantom can process
+    // and include our mint address in contextual data
+    const serializedTransaction = transaction.serialize({
+      requireAllSignatures: false, // Important: This must be false since we're not signing
+      verifySignatures: false
     });
     
-    // Confirm the transaction
-    console.log('⏳ Confirming transaction...');
-    const confirmation = await connection.confirmTransaction({
-      blockhash,
-      lastValidBlockHeight,
-      signature: txid
-    });
+    // Include the mint keypair as context for Phantom
+    const walletContextState = { mint: messageTokenMintKeypair };
     
-    if (confirmation.value.err) {
-      console.error('❌ Transaction confirmed but has errors:', confirmation.value.err);
+    // Use signAndSendTransaction instead of signTransaction + sendRawTransaction
+    console.log('📡 Sending transaction to Phantom for signing and broadcast...');
+    
+    // Call Phantom's signAndSendTransaction
+    try {
+      const { signature } = await wallet.signAndSendTransaction({
+        transaction,
+        signers: [messageTokenMintKeypair] // Provide the mint keypair for Phantom to sign
+      });
+      
+      console.log('✍️ Transaction sent with signature:', signature);
+      
+      // Wait for confirmation
+      console.log('⏳ Waiting for transaction confirmation...');
+      try {
+        const confirmation = await connection.confirmTransaction(signature, 'confirmed');
+        
+        if (confirmation.value.err) {
+          console.error('❌ Transaction confirmed but has errors:', confirmation.value.err);
+          return {
+            success: false,
+            error: `Transaction failed: ${JSON.stringify(confirmation.value.err)}`
+          };
+        }
+        
+        console.log('✅ Transaction confirmed successfully!');
+        return {
+          success: true,
+          txId: signature,
+        };
+      } catch (confirmError) {
+        console.error('Error confirming transaction:', confirmError);
+        // Even if confirmation checking fails, the transaction might still succeed
+        // Return the signature so the user can check it
+        return {
+          success: true,
+          txId: signature,
+          error: 'Transaction sent, but confirmation status unknown'
+        };
+      }
+    } catch (signError) {
+      console.error('❌ Error in signAndSendTransaction:', signError);
       return {
         success: false,
-        error: `Transaction failed: ${JSON.stringify(confirmation.value.err)}`
+        error: signError instanceof Error ? signError.message : String(signError),
       };
     }
-    
-    console.log('✅ Transaction confirmed successfully!');
-    return {
-      success: true,
-      txId: txid,
-    };
   } catch (error) {
     console.error('❌ Error sending token message:', error);
     return {
