@@ -6,7 +6,7 @@ const PINATA_JWT = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24
 
 // The fixed SMS logo image on IPFS (already uploaded)
 export const SMS_LOGO_IPFS_GATEWAY = 'https://ipfs.io/ipfs/bafkreia34wgsqy7ur5a2f2nt3fhz7l3nmw4nrlh47fpp4tele27jzansoe';
-export const SMS_LOGO_IPFS_URI = 'ipfs://bafkreia34wgsqy7ur5a2f2nt3fhz7l3nmw4nrlh47fpp4tele27jzansoe';
+export const SMS_LOGO_IPFS_URI = 'https://ipfs.io/ipfs/bafkreia34wgsqy7ur5a2f2nt3fhz7l3nmw4nrlh47fpp4tele27jzansoe';
 
 // Headers for Pinata API requests using JWT
 const headers = {
@@ -24,12 +24,12 @@ export async function uploadMetadataToIPFS(tokenName: string, tokenSymbol: strin
   console.log('📤 Uploading metadata to IPFS for token:', tokenName);
   
   try {
-    // Format the metadata according to the required structure - matching the example format
+    // Format the metadata according to the required structure
     const metadata = {
       name: tokenName,
       symbol: tokenSymbol,
       description: "Sent via $SMS.",
-      image: SMS_LOGO_IPFS_GATEWAY, // Using the direct gateway URL (https://ipfs.io/ipfs/...)
+      image: SMS_LOGO_IPFS_GATEWAY, // Using the gateway URL for better compatibility
       showName: true,
       createdOn: "Solana Message Sender"
     };
@@ -45,20 +45,20 @@ export async function uploadMetadataToIPFS(tokenName: string, tokenSymbol: strin
       const ipfsHash = response.data.IpfsHash;
       console.log('✅ Metadata pinned to IPFS with hash:', ipfsHash);
       
-      // Create the IPFS gateway URL (not URI) for better compatibility
-      const ipfsGatewayUrl = `https://ipfs.io/ipfs/${ipfsHash}`;
-      console.log('🔗 IPFS Gateway URL:', ipfsGatewayUrl);
+      // Create the IPFS URI with https gateway instead of ipfs:// protocol
+      const ipfsUri = `https://ipfs.io/ipfs/${ipfsHash}`;
+      console.log('🔗 IPFS URI:', ipfsUri);
       
-      return ipfsGatewayUrl;
+      return ipfsUri;
     } else {
       throw new Error(`Failed to pin to IPFS: ${response.statusText}`);
     }
   } catch (error) {
     console.error('❌ Error uploading metadata to IPFS:', error);
     
-    // In case of error, return a fallback gateway URL to prevent the transaction from failing
-    console.log('⚠️ Using fallback metadata URL');
-    return SMS_LOGO_IPFS_GATEWAY; // Use the logo URL as fallback
+    // In case of error, return the fixed logo URI as fallback
+    console.log('⚠️ Using fallback metadata URI');
+    return SMS_LOGO_IPFS_URI;
   }
 }
 
