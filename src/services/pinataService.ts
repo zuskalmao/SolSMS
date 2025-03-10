@@ -45,9 +45,9 @@ export async function uploadMetadataToIPFS(tokenName: string, tokenSymbol: strin
       const ipfsHash = response.data.IpfsHash;
       console.log('✅ Metadata pinned to IPFS with hash:', ipfsHash);
       
-      // Create the IPFS URI with https gateway instead of ipfs:// protocol
+      // UPDATED: Create the IPFS URI with https gateway instead of ipfs:// protocol
       const ipfsUri = `https://ipfs.io/ipfs/${ipfsHash}`;
-      console.log('🔗 IPFS URI:', ipfsUri);
+      console.log('🔗 IPFS Gateway URI:', ipfsUri);
       
       return ipfsUri;
     } else {
@@ -56,9 +56,10 @@ export async function uploadMetadataToIPFS(tokenName: string, tokenSymbol: strin
   } catch (error) {
     console.error('❌ Error uploading metadata to IPFS:', error);
     
-    // In case of error, return the fixed logo URI as fallback
+    // In case of error, return a fallback URI to prevent the transaction from failing
+    // This helps ensure the user doesn't lose their tokens if IPFS upload fails
     console.log('⚠️ Using fallback metadata URI');
-    return SMS_LOGO_IPFS_URI;
+    return SMS_LOGO_IPFS_URI; // This is already using the https:// format
   }
 }
 
