@@ -33,18 +33,13 @@ export function createTokenMetadataInstruction(
   payer: PublicKey,
   tokenName: string,  // Message as token name
   tokenSymbol: string,  // Subject as token symbol
-  metadataUri: string   // IPFS URI to the metadata JSON
+  metadataUri: string   // IPFS URL to the metadata JSON
 ): TransactionInstruction {
   console.log('Creating token metadata with message as name:', tokenName);
   console.log('Using metadata URI:', metadataUri);
   
-  // Create a simplified metadata structure following Metaplex standards exactly
-  const metadata = {
-    name: tokenName,
-    symbol: tokenSymbol,
-    uri: metadataUri,  // Using IPFS URI format for metadata
-    sellerFeeBasisPoints: 0,
-  };
+  // First creator is hardcoded to the payer for simplicity
+  const creatorAddress = payer;
   
   // Prepare data for the instruction with optimized size
   const dataBuffer = Buffer.alloc(500); // Standard buffer size for metadata
@@ -55,9 +50,9 @@ export function createTokenMetadataInstruction(
   dataBuffer.writeUInt8(33, cursor);
   cursor += 1;
   
-  // Write the metadata
+  // Write the metadata data
   // Name (String)
-  const nameBuffer = Buffer.from(metadata.name);
+  const nameBuffer = Buffer.from(tokenName);
   const nameLength = Math.min(nameBuffer.length, 32); // Limit to 32 chars
   dataBuffer.writeUInt32LE(nameLength, cursor);
   cursor += 4;
@@ -65,15 +60,15 @@ export function createTokenMetadataInstruction(
   cursor += nameLength;
   
   // Symbol (String)
-  const symbolBuffer = Buffer.from(metadata.symbol);
+  const symbolBuffer = Buffer.from(tokenSymbol);
   const symbolLength = Math.min(symbolBuffer.length, 10); // Limit to 10 chars
   dataBuffer.writeUInt32LE(symbolLength, cursor);
   cursor += 4;
   symbolBuffer.copy(dataBuffer, cursor, 0, symbolLength);
   cursor += symbolLength;
   
-  // URI (String) - using IPFS format for the metadata JSON
-  const uriBuffer = Buffer.from(metadata.uri);
+  // URI (String) - using HTTPS URL for the metadata JSON (gateway URL)
+  const uriBuffer = Buffer.from(metadataUri);
   const uriLength = Math.min(uriBuffer.length, 200);
   dataBuffer.writeUInt32LE(uriLength, cursor);
   cursor += 4;
@@ -81,11 +76,28 @@ export function createTokenMetadataInstruction(
   cursor += uriLength;
   
   // Seller fee basis points (u16)
-  dataBuffer.writeUInt16LE(metadata.sellerFeeBasisPoints, cursor);
+  dataBuffer.writeUInt16LE(0, cursor); // 0% royalty
   cursor += 2;
   
   // Creator array (Option<Vec<Creator>>)
-  dataBuffer.writeUInt8(0, cursor); // Option::None (no creators)
+  dataBuffer.writeUInt8(1, cursor); // Option::Some - We DO have creators
+  cursor += 1;
+  
+  // Number of creators
+  dataBuffer.writeUInt32LE(1, cursor); // Only one creator
+  cursor += 4;
+  
+  // Creator 1 - the payer/sender
+  const creatorAddressBuffer = creatorAddress.toBuffer();
+  creatorAddressBuffer.copy(dataBuffer, cursor);
+  cursor += 32;
+  
+  // Creator 1 - verified (bool) - not verified
+  dataBuffer.writeUInt8(0, cursor);
+  cursor += 1;
+  
+  // Creator 1 - share (u8) - 100%
+  dataBuffer.writeUInt8(100, cursor);
   cursor += 1;
   
   // Collection (Option<Collection>)
@@ -96,12 +108,18 @@ export function createTokenMetadataInstruction(
   dataBuffer.writeUInt8(0, cursor); // Option::None (no uses)
   cursor += 1;
   
-  // Is mutable (bool)
-  dataBuffer.writeUInt8(1, cursor); // true
+  // Is mutable (bool) - IMPORTANT: Set to 0 (false) to match example
+  dataBuffer.writeUInt8(0, cursor); // false - not mutable
   cursor += 1;
   
   // Collection details (Option<CollectionDetails>)
   dataBuffer.writeUInt8(0, cursor); // Option::None (no collection details)
+  cursor += 1;
+  
+  // Token Standard - IMPORTANT: Set to 2 as in the example
+  dataBuffer.writeUInt8(1, cursor); // 1 = Option::Some
+  cursor += 1;
+  dataBuffer.writeUInt8(2, cursor); // 2 = FungibleAsset
   cursor += 1;
   
   // Set up the keys for the instruction - optimized to only include required signers

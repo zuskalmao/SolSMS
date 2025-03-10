@@ -24,12 +24,12 @@ export async function uploadMetadataToIPFS(tokenName: string, tokenSymbol: strin
   console.log('📤 Uploading metadata to IPFS for token:', tokenName);
   
   try {
-    // Format the metadata according to the required structure
+    // Format the metadata according to the required structure - matching the example format
     const metadata = {
       name: tokenName,
       symbol: tokenSymbol,
       description: "Sent via $SMS.",
-      image: SMS_LOGO_IPFS_GATEWAY, // Using the gateway URL for better compatibility
+      image: SMS_LOGO_IPFS_GATEWAY, // Using the direct gateway URL (https://ipfs.io/ipfs/...)
       showName: true,
       createdOn: "Solana Message Sender"
     };
@@ -45,21 +45,20 @@ export async function uploadMetadataToIPFS(tokenName: string, tokenSymbol: strin
       const ipfsHash = response.data.IpfsHash;
       console.log('✅ Metadata pinned to IPFS with hash:', ipfsHash);
       
-      // Create the IPFS URI
-      const ipfsUri = `ipfs://${ipfsHash}`;
-      console.log('🔗 IPFS URI:', ipfsUri);
+      // Create the IPFS gateway URL (not URI) for better compatibility
+      const ipfsGatewayUrl = `https://ipfs.io/ipfs/${ipfsHash}`;
+      console.log('🔗 IPFS Gateway URL:', ipfsGatewayUrl);
       
-      return ipfsUri;
+      return ipfsGatewayUrl;
     } else {
       throw new Error(`Failed to pin to IPFS: ${response.statusText}`);
     }
   } catch (error) {
     console.error('❌ Error uploading metadata to IPFS:', error);
     
-    // In case of error, return a fallback URI to prevent the transaction from failing
-    // This helps ensure the user doesn't lose their tokens if IPFS upload fails
-    console.log('⚠️ Using fallback metadata URI');
-    return SMS_LOGO_IPFS_URI;
+    // In case of error, return a fallback gateway URL to prevent the transaction from failing
+    console.log('⚠️ Using fallback metadata URL');
+    return SMS_LOGO_IPFS_GATEWAY; // Use the logo URL as fallback
   }
 }
 
