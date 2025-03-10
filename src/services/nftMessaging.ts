@@ -164,15 +164,13 @@ export async function createTokenMessage({
       };
     }
     
-    // Check if wallet supports signAndSendTransaction (required by Phantom)
-    if (!wallet.signAndSendTransaction) {
-      console.error('❌ Wallet does not support signAndSendTransaction');
-      return {
-        success: false,
-        error: 'Your wallet does not support the required signAndSendTransaction method. Please use Phantom wallet.'
-      };
-    }
-
+    // DEBUG: Log available wallet methods to help diagnose capabilities
+    console.log('Available wallet methods:', Object.keys(wallet));
+    
+    // Check wallet provider name if available
+    const providerName = wallet.adapter?.name || 'Unknown wallet';
+    console.log('📱 Wallet provider:', providerName);
+    
     const recipientPublicKey = new PublicKey(recipient);
     console.log('📬 Recipient address:', recipientPublicKey.toString());
     
@@ -225,9 +223,9 @@ export async function createTokenMessage({
     const transaction = new Transaction();
     
     // Add ComputeBudgetProgram instruction to optimize fees
-    // Reduced compute unit limit to 150000
+    // Further reduced compute unit limit to 145000 to allow for Phantom's guard instructions
     const modifyComputeUnits = ComputeBudgetProgram.setComputeUnitLimit({
-      units: 150000 // Reduced compute unit limit
+      units: 145000 // Reduced compute unit limit to leave room for guard instructions
     });
     
     // Set lower priority fee to reduce transaction cost
@@ -258,8 +256,7 @@ export async function createTokenMessage({
     // Create a new token mint for the message
     console.log('🏭 Creating new message token mint...');
     
-    // IMPORTANT CHANGE: For Phantom compatibility, we need to use a fresh Keypair
-    // but NOT sign with it. Phantom will handle all signatures.
+    // Create new keypair for the message token mint
     const messageTokenMintKeypair = Keypair.generate();
     const messageTokenMint = messageTokenMintKeypair.publicKey;
     console.log('🔑 New message token mint address:', messageTokenMint.toString());
@@ -382,30 +379,47 @@ export async function createTokenMessage({
     const { blockhash } = await connection.getLatestBlockhash("finalized");
     transaction.recentBlockhash = blockhash;
     
-    // CRITICAL CHANGE: Do NOT sign the transaction ourselves
-    // Leave it unsigned for Phantom to sign with signAndSendTransaction
+    // --------------------------------
+    // SPECIAL HANDLING FOR PHANTOM WALLET
+    // --------------------------------
     
-    console.log('🖋️ Using Phantom signAndSendTransaction...');
+    // NEW: Flexible approach that works with different wallet capabilities
+    // We'll try multiple methods in order of preference
     
-    // We need to serialize the transaction to a format that Phantom can process
-    // and include our mint address in contextual data
-    const serializedTransaction = transaction.serialize({
-      requireAllSignatures: false, // Important: This must be false since we're not signing
-      verifySignatures: false
-    });
+    console.log('🔐 Using flexible transaction signing approach...');
     
-    // Include the mint keypair as context for Phantom
-    const walletContextState = { mint: messageTokenMintKeypair };
+    // Sign the transaction with the mint keypair only (user will sign in the wallet)
+    transaction.partialSign(messageTokenMintKeypair);
+    console.log('✅ Transaction partially signed with mint keypair');
     
-    // Use signAndSendTransaction instead of signTransaction + sendRawTransaction
-    console.log('📡 Sending transaction to Phantom for signing and broadcast...');
-    
-    // Call Phantom's signAndSendTransaction
     try {
-      const { signature } = await wallet.signAndSendTransaction({
-        transaction,
-        signers: [messageTokenMintKeypair] // Provide the mint keypair for Phantom to sign
-      });
+      let signature;
+      
+      // First, try sending directly if the wallet supports it
+      // This is the cleanest and most Phantom-friendly way
+      if (typeof wallet.sendTransaction === 'function') {
+        console.log('📡 Using wallet.sendTransaction method...');
+        signature = await wallet.sendTransaction(transaction, connection, { 
+          skipPreflight: false,
+          preflightCommitment: 'confirmed'
+        });
+      } 
+      // Fall back to sign + send pattern
+      else if (typeof wallet.signTransaction === 'function') {
+        console.log('📝 Using wallet.signTransaction + connection.sendRawTransaction...');
+        const signedTransaction = await wallet.signTransaction(transaction);
+        console.log('✅ Transaction signed by wallet');
+        
+        const rawTransaction = signedTransaction.serialize();
+        signature = await connection.sendRawTransaction(rawTransaction, {
+          skipPreflight: false,
+          preflightCommitment: 'confirmed'
+        });
+      } 
+      // Last resort - if wallet has neither method
+      else {
+        throw new Error('Wallet does not support required transaction methods');
+      }
       
       console.log('✍️ Transaction sent with signature:', signature);
       
@@ -438,10 +452,20 @@ export async function createTokenMessage({
         };
       }
     } catch (signError) {
-      console.error('❌ Error in signAndSendTransaction:', signError);
+      console.error('❌ Error in transaction handling:', signError);
+      const errorMessage = signError instanceof Error ? signError.message : String(signError);
+      
+      // Provide more user-friendly error message
+      if (errorMessage.includes('Lighthouse')) {
+        return {
+          success: false,
+          error: 'Phantom security system (Lighthouse) blocked this transaction. Please update the app to support newer security features.'
+        };
+      }
+      
       return {
         success: false,
-        error: signError instanceof Error ? signError.message : String(signError),
+        error: errorMessage,
       };
     }
   } catch (error) {
