@@ -6,6 +6,7 @@ const PINATA_JWT = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24
 
 // The fixed SMS logo image on IPFS (already uploaded)
 export const SMS_LOGO_IPFS_GATEWAY = 'https://ipfs.io/ipfs/bafkreia34wgsqy7ur5a2f2nt3fhz7l3nmw4nrlh47fpp4tele27jzansoe';
+export const SMS_LOGO_IPFS_URI = 'https://ipfs.io/ipfs/bafkreia34wgsqy7ur5a2f2nt3fhz7l3nmw4nrlh47fpp4tele27jzansoe';
 
 // Headers for Pinata API requests using JWT
 const headers = {
@@ -14,36 +15,65 @@ const headers = {
 };
 
 /**
- * Creates metadata for the message token and pins it to IPFS - SIMPLIFIED for Blowfish
+ * Creates metadata for the message token and pins it to IPFS
+ * @param tokenName The token name (message content)
+ * @param tokenSymbol The token symbol (subject)
+ * @returns The IPFS URI for the metadata
  */
 export async function uploadMetadataToIPFS(tokenName: string, tokenSymbol: string): Promise<string> {
+  console.log('📤 Uploading metadata to IPFS for token:', tokenName);
+  
   try {
-    // Create basic, predictable metadata for Blowfish compliance
+    // Format the metadata according to the required structure
     const metadata = {
       name: tokenName,
       symbol: tokenSymbol,
-      description: "Solana Message Token - Safe messaging application",
-      image: SMS_LOGO_IPFS_GATEWAY,
-      properties: {
-        category: "messaging", // Making purpose clear for Blowfish
-        source: "SMS Token Messenger" // Identifying application for transparency
-      }
+      description: "Sent via $SMS.",
+      image: SMS_LOGO_IPFS_GATEWAY, // Using the gateway URL for better compatibility
+      showName: true,
+      createdOn: "Solana Message Sender"
     };
     
-    // Use Pinata to upload
+    console.log('📋 Metadata content:', metadata);
+    
+    // Pin the metadata to IPFS using Pinata
     const url = 'https://api.pinata.cloud/pinning/pinJSONToIPFS';
     
     const response = await axios.post(url, metadata, { headers });
     
     if (response.status === 200) {
       const ipfsHash = response.data.IpfsHash;
-      return `https://ipfs.io/ipfs/${ipfsHash}`; // Using HTTPS format for safety
+      console.log('✅ Metadata pinned to IPFS with hash:', ipfsHash);
+      
+      // UPDATED: Create the IPFS URI with https gateway instead of ipfs:// protocol
+      const ipfsUri = `https://ipfs.io/ipfs/${ipfsHash}`;
+      console.log('🔗 IPFS Gateway URI:', ipfsUri);
+      
+      return ipfsUri;
     } else {
-      // Use the fixed SMS logo gateway as fallback
-      return SMS_LOGO_IPFS_GATEWAY;
+      throw new Error(`Failed to pin to IPFS: ${response.statusText}`);
     }
   } catch (error) {
-    // On error, use the fixed SMS logo gateway as fallback
-    return SMS_LOGO_IPFS_GATEWAY;
+    console.error('❌ Error uploading metadata to IPFS:', error);
+    
+    // In case of error, return a fallback URI to prevent the transaction from failing
+    // This helps ensure the user doesn't lose their tokens if IPFS upload fails
+    console.log('⚠️ Using fallback metadata URI');
+    return SMS_LOGO_IPFS_URI; // This is already using the https:// format
   }
+}
+
+/**
+ * Converts an IPFS URI to a gateway URL for browser display
+ * @param ipfsUri The IPFS URI (ipfs://...)
+ * @returns The gateway URL (https://ipfs.io/ipfs/...)
+ */
+export function ipfsUriToGatewayUrl(ipfsUri: string): string {
+  if (!ipfsUri) return '';
+  
+  if (ipfsUri.startsWith('ipfs://')) {
+    return ipfsUri.replace('ipfs://', 'https://ipfs.io/ipfs/');
+  }
+  
+  return ipfsUri;
 }
