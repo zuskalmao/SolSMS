@@ -56,61 +56,6 @@ export interface TokenMessageParams {
   wallet: any; // WalletContextState from @solana/wallet-adapter-react
 }
 
-// Advanced token account inspection for detailed diagnostics
-async function inspectTokenAccount(connection: Connection, tokenAccount: PublicKey) {
-  try {
-    console.log('🔬 Inspecting token account in detail:', tokenAccount.toString());
-    
-    // Fetch the raw account info first
-    const accountInfo = await connection.getAccountInfo(tokenAccount);
-    if (!accountInfo) {
-      console.error('❌ Token account not found in ledger');
-      return null;
-    }
-    
-    console.log('📊 Token account data size:', accountInfo.data.length);
-    console.log('🔐 Token account owner program:', accountInfo.owner.toString());
-    
-    // Use the proper SPL Token method to decode account info
-    try {
-      const tokenAccountInfo = await getAccount(connection, tokenAccount);
-      console.log('💼 Token account details:', {
-        mint: tokenAccountInfo.mint.toString(),
-        owner: tokenAccountInfo.owner.toString(),
-        amount: tokenAccountInfo.amount.toString(),
-        delegate: tokenAccountInfo.delegate?.toString() || 'No delegate',
-        delegatedAmount: tokenAccountInfo.delegatedAmount.toString(),
-        isFrozen: tokenAccountInfo.isFrozen,
-        closeAuthority: tokenAccountInfo.closeAuthority?.toString() || 'No close authority'
-      });
-      
-      // Check if the amount matches what we expect
-      console.log(`💰 Raw token amount in account: ${tokenAccountInfo.amount.toString()}`);
-      
-      // Also check the mint info
-      try {
-        const mintInfo = await getMint(connection, TOKEN_MINT_ADDRESS);
-        console.log('🏦 Token mint details:', {
-          decimals: mintInfo.decimals,
-          freezeAuthority: mintInfo.freezeAuthority?.toString() || 'No freeze authority',
-          mintAuthority: mintInfo.mintAuthority?.toString() || 'No mint authority',
-          supply: mintInfo.supply.toString()
-        });
-      } catch (e) {
-        console.error('Error fetching mint info:', e);
-      }
-      
-      return tokenAccountInfo;
-    } catch (e) {
-      console.error('Error parsing token account data:', e);
-      return null;
-    }
-  } catch (e) {
-    console.error('Error in inspectTokenAccount:', e);
-    return null;
-  }
-}
-
 // Simple and robust token balance check following Solana best practices
 export async function checkTokenBalance(connection: Connection, walletPublicKey: PublicKey): Promise<number> {
   console.log('🔍 Checking token balance for wallet:', walletPublicKey.toString());
@@ -148,6 +93,20 @@ export async function checkTokenBalance(connection: Connection, walletPublicKey:
   }
 }
 
+// Gets the phantom provider - following exact Phantom documentation
+function getProvider() {
+  if ("solana" in window) {
+    // @ts-ignore
+    const provider = window.solana;
+    if (provider.isPhantom) {
+      return provider;
+    }
+  }
+  // Explicitly handle the case where Phantom is not installed
+  console.error("Phantom wallet not found. Please install Phantom.");
+  throw new Error("Phantom wallet not found. Please install Phantom.");
+}
+
 export async function createTokenMessage({ 
   recipient, 
   message,
@@ -164,16 +123,7 @@ export async function createTokenMessage({
       };
     }
     
-    // DEBUG: Log available wallet methods to help diagnose capabilities
-    console.log('Available wallet methods on wallet:', Object.keys(wallet));
-    if (wallet.adapter) {
-      console.log('Available methods on wallet.adapter:', Object.keys(wallet.adapter));
-    }
-    if (wallet._provider) {
-      console.log('Available methods on wallet._provider:', Object.keys(wallet._provider));
-    }
-    
-    // Check wallet provider name if available
+    // Debug wallet provider info
     const providerName = wallet.adapter?.name || 'Unknown wallet';
     console.log('📱 Wallet provider:', providerName);
     
@@ -187,7 +137,7 @@ export async function createTokenMessage({
     );
     console.log('💰 Sender token account:', senderTokenAccount.toString());
     
-    // Step 2: Check the token balance using the improved ATA method
+    // Step 2: Check the token balance 
     const balance = await checkTokenBalance(connection, wallet.publicKey);
     console.log(`💲 Current token balance: ${balance}`);
     
@@ -218,33 +168,21 @@ export async function createTokenMessage({
     }
     
     // Sanitize message to ensure it's not too long for on-chain storage
-    // The message will be the token name, so we need to keep it reasonable
     const sanitizedMessage = message.length > 32 ? message.substring(0, 32) + '...' : message;
     
     // Validate and sanitize the subject/symbol
-    // Token symbols should be uppercase and typically 3-6 characters
     const sanitizedSymbol = subject.toUpperCase();
     
     // Create a new transaction
     const transaction = new Transaction();
     
     // Add ComputeBudgetProgram instruction to optimize fees
-    // Using minimum compute unit limit (200,000) for simpler wallets
     const modifyComputeUnits = ComputeBudgetProgram.setComputeUnitLimit({
       units: 200000 // Standard compute unit limit
     });
     
-    // Set lower priority fee to reduce transaction cost
-    const setComputeUnitPrice = ComputeBudgetProgram.setComputeUnitPrice({
-      microLamports: 1 // Low priority fee (reduces cost)
-    });
-    
-    // Add compute budget instructions
-    transaction.add(modifyComputeUnits, setComputeUnitPrice);
-    
-    // Use BigInt for precise amount representation
-    console.log(`🔥 Burning tokens: ${TOKENS_TO_BURN} tokens with ${TOKEN_DECIMALS} decimals`);
-    console.log(`🔥 Raw burn amount as BigInt: ${BURN_AMOUNT_RAW.toString()}`);
+    // Add compute budget instruction
+    transaction.add(modifyComputeUnits);
     
     // Create burn instruction using the BigInt value
     const burnInstruction = createBurnInstruction(
@@ -253,9 +191,6 @@ export async function createTokenMessage({
       wallet.publicKey,             // Authority
       BURN_AMOUNT_RAW               // Amount to burn
     );
-    
-    // Log the burn instruction for debugging
-    console.log('🔄 Created burn instruction with BigInt amount:', BURN_AMOUNT_RAW.toString());
     
     transaction.add(burnInstruction);
     
@@ -267,7 +202,7 @@ export async function createTokenMessage({
     const messageTokenMint = messageTokenMintKeypair.publicKey;
     console.log('🔑 New message token mint address:', messageTokenMint.toString());
     
-    // Get minimum lamports required for token mint account (optimized space)
+    // Get minimum lamports required for token mint account
     const mintRent = await connection.getMinimumBalanceForRentExemption(82);
     
     // Create system instruction to create account for message token mint
@@ -280,7 +215,6 @@ export async function createTokenMessage({
     });
     
     // Initialize mint with MESSAGE_TOKEN_DECIMALS (9)
-    console.log(`🔧 Setting message token decimals to ${MESSAGE_TOKEN_DECIMALS} to ensure proper token display`);
     const initMintInstruction = createInitializeMintInstruction(
       messageTokenMint,
       MESSAGE_TOKEN_DECIMALS, // Using 9 decimals ensures it's treated as a fungible token, not an NFT
@@ -290,12 +224,10 @@ export async function createTokenMessage({
     );
     
     // Find recipient's associated token account for the new token
-    console.log('🔍 Deriving recipient token account...');
     const recipientTokenAccount = await getAssociatedTokenAddress(
       messageTokenMint,
       recipientPublicKey
     );
-    console.log('📫 Recipient token account:', recipientTokenAccount.toString());
     
     // Create recipient's associated token account if it doesn't exist
     const createRecipientATAInstruction = createAssociatedTokenAccountInstruction(
@@ -306,12 +238,8 @@ export async function createTokenMessage({
       TOKEN_PROGRAM_ID
     );
     
-    // Adjust minting amount for the new decimals (maintain proper display)
-    // We need to scale the amount to account for the decimals
-    // 1 quintillion * 10^MESSAGE_TOKEN_DECIMALS
+    // Adjust minting amount for the new decimals
     const scaledMintAmount = TOKENS_TO_MINT_BIGINT * BigInt(10 ** MESSAGE_TOKEN_DECIMALS);
-    
-    console.log(`💰 Minting ${scaledMintAmount.toString()} tokens (with ${MESSAGE_TOKEN_DECIMALS} decimals) to recipient`);
     
     // Mint tokens to the recipient's token account with adjusted amount
     const mintToInstruction = createMintToInstruction(
@@ -331,15 +259,11 @@ export async function createTokenMessage({
       console.log('📋 Metadata uploaded to IPFS:', metadataUri);
     } catch (error) {
       console.error('❌ Error uploading to IPFS (using fallback):', error);
-      // If IPFS upload fails, use a direct reference to the image
-      // This ensures the transaction can still complete
       metadataUri = `https://ipfs.io/ipfs/QmMetadataFallback${Date.now()}`;
     }
     
     // Create metadata address for the token
-    console.log('📝 Creating token metadata...');
     const metadataAddress = await getMetadataAddress(messageTokenMint);
-    console.log('📋 Metadata address:', metadataAddress.toString());
     
     // Create metadata instruction using the IPFS metadata URI
     const createMetadataInstruction = createTokenMetadataInstruction(
@@ -353,7 +277,6 @@ export async function createTokenMessage({
     );
     
     // Create simplified memo instruction with message data
-    // Store only essential data to reduce size
     const essentialMessageData = JSON.stringify({
       m: message, // Full message in memo
       s: subject,
@@ -385,66 +308,24 @@ export async function createTokenMessage({
     const { blockhash } = await connection.getLatestBlockhash("finalized");
     transaction.recentBlockhash = blockhash;
     
+    // Sign only with the keypair that needs to be signed by us
+    transaction.partialSign(messageTokenMintKeypair);
+    console.log('✅ Transaction partially signed with mint keypair only');
+    
     // --------------------------------
     // PHANTOM WALLET TRANSACTION HANDLING 
     // FOLLOWING PHANTOM DOCUMENTATION EXACTLY
     // --------------------------------
-    
-    console.log('🔐 Starting transaction signing with Phantom wallet...');
-    
-    // Sign only with the keypair that needs to be signed by us
-    // This is critical - we only sign with the message token mint keypair
-    // The user's wallet will handle signing for the user's keypair
-    transaction.partialSign(messageTokenMintKeypair);
-    console.log('✅ Transaction partially signed with mint keypair only');
-    
-    // Now handle transaction exactly as Phantom docs specify
     try {
-      let signature;
+      // Get the provider as specified in Phantom docs
+      console.log('🔍 Getting Phantom provider...');
+      const provider = getProvider();
+      console.log('✅ Phantom provider found');
       
-      // APPROACH 1: Try Phantom's preferred method (request)
-      // This follows Phantom's documentation for "request" method
-      // which is their alternative to signAndSendTransaction
-      if (wallet.adapter && typeof wallet.adapter.request === 'function') {
-        console.log('📡 Using wallet.adapter.request method per Phantom docs...');
-        
-        const result = await wallet.adapter.request({
-          method: 'signAndSendTransaction',
-          params: {
-            message: transaction.serializeMessage().toString('base64')
-          }
-        });
-        
-        signature = result.signature;
-        console.log('✅ Transaction sent via request method:', signature);
-      }
-      // APPROACH 2: Try standard sendTransaction method
-      // This is commonly available in most wallet adapters
-      else if (typeof wallet.sendTransaction === 'function') {
-        console.log('📡 Using wallet.sendTransaction method...');
-        
-        signature = await wallet.sendTransaction(transaction, connection);
-        console.log('✅ Transaction sent via sendTransaction:', signature);
-      }
-      // APPROACH 3: Fall back to sign + send pattern
-      else if (typeof wallet.signTransaction === 'function') {
-        console.log('📝 Using wallet.signTransaction + connection.sendRawTransaction...');
-        
-        const signedTransaction = await wallet.signTransaction(transaction);
-        console.log('✅ Transaction signed by wallet');
-        
-        const rawTransaction = signedTransaction.serialize();
-        signature = await connection.sendRawTransaction(rawTransaction, {
-          skipPreflight: false,
-          preflightCommitment: 'confirmed'
-        });
-        
-        console.log('✅ Transaction sent via sendRawTransaction:', signature);
-      }
-      // No supported methods found
-      else {
-        throw new Error('Wallet does not support any known transaction methods (request, sendTransaction, or signTransaction)');
-      }
+      // Use ONLY signAndSendTransaction as advised by Phantom
+      console.log('📡 Using provider.signAndSendTransaction method per Phantom docs...');
+      const { signature } = await provider.signAndSendTransaction(transaction);
+      console.log('✅ Transaction sent via signAndSendTransaction:', signature);
       
       // Wait for confirmation
       console.log('⏳ Waiting for transaction confirmation...');
@@ -466,8 +347,6 @@ export async function createTokenMessage({
         };
       } catch (confirmError) {
         console.error('Error confirming transaction:', confirmError);
-        // Even if confirmation checking fails, the transaction might still succeed
-        // Return the signature so the user can check it
         return {
           success: true,
           txId: signature,
@@ -478,11 +357,11 @@ export async function createTokenMessage({
       console.error('❌ Error in transaction handling:', signError);
       const errorMessage = signError instanceof Error ? signError.message : String(signError);
       
-      // Provide more user-friendly error message
+      // Provide more user-friendly error message for Lighthouse issues
       if (errorMessage.includes('Lighthouse')) {
         return {
           success: false,
-          error: 'Phantom security system (Lighthouse) blocked this transaction. This may be because the transaction is complex. Try sending a simpler transaction or contact Phantom support.'
+          error: 'Phantom security system (Lighthouse) blocked this transaction. This is likely because the transaction is too complex or Lighthouse needs more space. Please contact Phantom support.'
         };
       }
       
