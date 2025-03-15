@@ -1,15 +1,13 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import App from './App';
-import './index.css';
-
-// IMPORTANT: Buffer polyfill for browser environment
-import { Buffer } from 'buffer';
-// Make Buffer available globally
-window.Buffer = Buffer;
+import React from 'react'
+import ReactDOM from 'react-dom/client'
+import { BrowserRouter as Router } from 'react-router-dom'
+import App from './App.tsx'
+import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <App />
+    <Router>
+      <App />
+    </Router>
   </React.StrictMode>,
-);
+)

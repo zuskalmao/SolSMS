@@ -8,33 +8,51 @@ export default {
     extend: {
       colors: {
         primary: {
-          DEFAULT: '#9945FF',
-          light: '#B57BFF',
-          dark: '#722BB8',
+          DEFAULT: '#8a2be2', // Updated to match CSS variables
+          dark: '#7825c7',
+          light: '#9d4cef',
         },
         secondary: {
-          DEFAULT: '#14F195',
-          light: '#66FFD1',
-          dark: '#00C97B',
+          DEFAULT: '#0A0B0D',
+          dark: '#000000',
+          light: '#1F2125',
         },
-        dark: {
-          DEFAULT: '#0C0B13',
-          light: '#1E1C2E',
+        accent: {
+          DEFAULT: '#ff69b4', // Updated to match CSS variables
+          dark: '#e55aa0',
+          light: '#ff85c2',
         },
-        light: '#FFFFFF',
-        gray: '#64748b',
+        background: {
+          DEFAULT: '#0a0a0a', // Updated to match CSS variables
+          dark: '#050505',
+          light: '#1A1D21',
+        },
+      },
+      fontFamily: {
+        sans: ['Inter', 'sans-serif'],
       },
       backgroundImage: {
-        'hero-pattern': "url('data:image/svg+xml,%3Csvg width=\"60\" height=\"60\" viewBox=\"0 0 60 60\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cg fill=\"none\" fill-rule=\"evenodd\"%3E%3Cg fill=\"%239945FF\" fill-opacity=\"0.1\"%3E%3Cpath d=\"M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')",
+        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+        'hero-pattern': "url('https://images.unsplash.com/photo-1639322537504-6427a16b0a28?q=80&w=2832&auto=format&fit=crop')",
       },
       animation: {
-        'spin-slow': 'spin 8s linear infinite',
-        'bounce-slow': 'bounce 3s infinite',
+        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'float': 'float 6s ease-in-out infinite',
+        'glow': 'glow 2s ease-in-out infinite alternate',
       },
-      boxShadow: {
-        'glow': '0 0 20px 5px rgba(153, 69, 255, 0.15)',
-        'glow-secondary': '0 0 20px 5px rgba(20, 241, 149, 0.15)',
-      }
+      keyframes: {
+        float: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-20px)' },
+        },
+        glow: {
+          '0%': { boxShadow: '0 0 5px rgba(138, 43, 226, 0.7)' },
+          '100%': { boxShadow: '0 0 20px rgba(138, 43, 226, 0.9)' },
+        }
+      },
+      blur: {
+        xs: '2px',
+      },
     },
   },
   plugins: [],
