@@ -3,232 +3,137 @@
 @tailwind utilities;
 
 :root {
-  --primary: #8a2be2;
-  --accent: #ff69b4;
-  --background: #0a0a0a;
-  --background-dark: #050505;
-  --text: #ffffff;
+  --primary: #9945FF;
+  --primary-light: #B57BFF;
+  --primary-dark: #722BB8;
+  --secondary: #14F195;
+  --secondary-light: #66FFD1;
+  --secondary-dark: #00C97B;
+  --dark: #0C0B13;
+  --dark-light: #1E1C2E;
+  --light: #FFFFFF;
+  --gray: #64748b;
 }
 
-/* Hide default cursor */
-body {
-  font-family: 'Inter', sans-serif;
-  background-color: var(--background);
-  color: var(--text);
-  overflow-x: hidden;
-  cursor: none;
-}
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    font-family: 'Inter', sans-serif;
+    @apply bg-dark text-white;
+    overflow-x: hidden;
+  }
 
-/* Ensure cursor: none applies to all clickable elements */
-a, button, [role="button"], .cursor-pointer {
-  cursor: none;
-}
-
-html {
-  scroll-behavior: smooth;
-}
-
-/* Gradient text effect */
-.gradient-text {
-  @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent;
-  background-size: 200% 100%;
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Space Grotesk', sans-serif;
+  }
 }
 
 @layer components {
-  /* Improved gradient button with smooth transitions */
+  .btn {
+    @apply px-6 py-3 rounded-full font-medium transition-all duration-300 inline-flex items-center justify-center;
+  }
+
   .btn-primary {
-    @apply relative inline-flex items-center justify-center text-white font-medium rounded-full px-6 py-2 transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-lg overflow-hidden;
-    background-size: 200% 100%;
-    background-position: 100% 0;
-    background-image: linear-gradient(to right, var(--primary), var(--accent), var(--accent), var(--primary));
-    transition: background-position 0.5s ease-out, transform 0.3s ease, box-shadow 0.3s ease;
+    @apply bg-primary hover:bg-primary-light text-white;
   }
-  
-  .btn-primary:hover {
-    background-position: 0 0;
-    box-shadow: 0 10px 20px -10px rgba(138, 43, 226, 0.5);
+
+  .btn-secondary {
+    @apply bg-secondary hover:bg-secondary-light text-dark;
   }
-  
-  .btn-primary.btn-sm {
-    @apply text-sm px-4 py-1;
-  }
-  
-  /* Special button style for "Join Now" */
-  .btn-shine {
-    @apply relative inline-flex items-center justify-center text-white font-medium rounded-full px-4 py-1 text-sm overflow-hidden border border-primary/40 bg-background-dark hover:border-primary/80 transition-all duration-300 transform hover:scale-105 shadow-sm;
-  }
-  
-  .btn-shine::before {
-    content: '';
-    position: absolute;
-    top: -2px;
-    left: -2px;
-    right: -2px;
-    bottom: -2px;
-    background: linear-gradient(45deg, var(--primary), var(--accent), var(--primary));
-    background-size: 400%;
-    z-index: -1;
-    filter: blur(10px);
-    opacity: 0;
-    transition: opacity 0.3s ease-out;
-  }
-  
-  .btn-shine:hover::before {
-    opacity: 0.4;
-    animation: shine 3s infinite;
-  }
-  
-  /* Gradient button with shine effect for CTAs */
-  .btn-gradient-shine {
-    @apply relative inline-flex items-center justify-center font-bold rounded-full overflow-hidden transition-all duration-500 transform hover:scale-105 shadow-lg;
-    background-size: 300% 100%;
-    background-image: linear-gradient(
-      to right, 
-      var(--primary), 
-      color-mix(in srgb, var(--primary) 70%, var(--accent) 30%), 
-      var(--accent), 
-      color-mix(in srgb, var(--accent) 70%, var(--primary) 30%),
-      var(--primary)
-    );
-    background-position: 0% 50%;
-    transition: background-position 0.8s ease-out, transform 0.3s ease, box-shadow 0.3s ease;
-    box-shadow: 0 5px 15px -5px rgba(138, 43, 226, 0.3);
-  }
-  
-  .btn-gradient-shine:hover {
-    background-position: 100% 50%;
-    box-shadow: 0 10px 20px -5px rgba(138, 43, 226, 0.5);
-  }
-  
+
   .btn-outline {
-    @apply inline-flex items-center justify-center border-2 border-white/20 text-white hover:border-primary/50 font-medium rounded-full px-6 py-2 transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-white/20 hover:bg-white/5;
+    @apply border-2 border-primary hover:bg-primary hover:text-white text-primary;
+  }
+
+  .container {
+    @apply px-4 mx-auto max-w-7xl;
+  }
+
+  .section {
+    @apply py-16 md:py-24;
+  }
+
+  .gradient-text {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary;
+  }
+
+  .card {
+    @apply bg-dark-light rounded-2xl p-6 border border-gray/10 backdrop-blur-sm transition-all duration-300;
+  }
+
+  .card-hover {
+    @apply hover:border-primary/30 hover:shadow-lg hover:shadow-primary/10;
   }
 }
 
-@keyframes shine {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+/* Custom animations */
+.floating {
+  animation: floating 3s ease-in-out infinite;
 }
 
-/* Animated elements */
-.animate-float {
-  animation: float 6s ease-in-out infinite;
+.pulse {
+  animation: pulse 2s ease-in-out infinite;
 }
 
-.animate-pulse-slow {
-  animation: pulse 6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-@keyframes float {
-  0% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-20px);
-  }
-  100% {
-    transform: translateY(0px);
-  }
+@keyframes floating {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-15px); }
+  100% { transform: translateY(0px); }
 }
 
 @keyframes pulse {
-  0%, 100% {
-    opacity: 0.6;
-  }
-  50% {
-    opacity: 0.3;
-  }
+  0% { opacity: 0.8; transform: scale(0.95); }
+  50% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0.8; transform: scale(0.95); }
 }
 
-/* Animated gradient text - same properties for both */
-.animated-gradient-text {
-  background-clip: text;
-  -webkit-background-clip: text;
-  color: transparent;
-  display: inline-block;
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--dark-light);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--primary-dark);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
+
+/* Custom glow effects */
+.glow {
+  box-shadow: 0 0 20px 5px rgba(153, 69, 255, 0.15);
+}
+
+.glow-secondary {
+  box-shadow: 0 0 20px 5px rgba(20, 241, 149, 0.15);
+}
+
+/* Gradient border */
+.gradient-border {
   position: relative;
-  background-size: 200% 200%;
-  animation: gradientShift 4s ease infinite;
-  /* Standardized text-shadow */
-  text-shadow: 0 0 8px rgba(138, 43, 226, 0.25);
+  border-radius: 1rem;
 }
 
-.duel-text, .victory-text {
-  position: relative;
-}
-
-.duel-text {
-  background-image: linear-gradient(45deg, #8a2be2, #ff69b4, #8a2be2);
-}
-
-.victory-text {
-  background-image: linear-gradient(45deg, #ff69b4, #8a2be2, #ff69b4);
-  /* Add padding to prevent text cutoff */
-  padding-bottom: 0.1em;
-  margin-bottom: 0.05em;
-  line-height: 1.2;
-}
-
-@keyframes gradientShift {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
-}
-
-/* Standardized glow effect for both */
-.duel-text::after, .victory-text::after {
+.gradient-border::before {
   content: "";
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
+  inset: -1px;
+  border-radius: 1rem;
+  padding: 1px;
+  background: linear-gradient(45deg, var(--primary), var(--secondary));
+  -webkit-mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
   z-index: -1;
-  filter: blur(10px);
-  opacity: 0;
-  border-radius: 8px;
-  /* Same animation for both */
-  animation: fadeInGlow 0.8s ease-out forwards 0.2s, gradientShift 4s ease 1s infinite;
-}
-
-@keyframes fadeInGlow {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 0.25; /* Same final opacity for both */
-  }
-}
-
-.duel-text::after {
-  background: linear-gradient(45deg, #8a2be2, #ff69b4, #8a2be2);
-  bottom: 0;
-}
-
-.victory-text::after {
-  background: linear-gradient(45deg, #ff69b4, #8a2be2, #ff69b4);
-  /* Ensure glow extends below for the 'y' descender */
-  bottom: -0.1em;
-}
-
-/* Animation for radial gradient backgrounds */
-@keyframes pulse-radial {
-  0%, 100% {
-    transform: scale(1);
-    opacity: 0.7;
-  }
-  50% {
-    transform: scale(1.1);
-    opacity: 0.5;
-  }
-}
-
-.animate-pulse-radial {
-  animation: pulse-radial 8s ease-in-out infinite;
 }
