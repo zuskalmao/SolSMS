@@ -10,11 +10,18 @@
   --text: #ffffff;
 }
 
+/* Hide default cursor */
 body {
   font-family: 'Inter', sans-serif;
   background-color: var(--background);
   color: var(--text);
   overflow-x: hidden;
+  cursor: none;
+}
+
+/* Ensure cursor: none applies to all clickable elements */
+a, button, [role="button"], .cursor-pointer {
+  cursor: none;
 }
 
 html {
@@ -224,103 +231,4 @@ html {
 
 .animate-pulse-radial {
   animation: pulse-radial 8s ease-in-out infinite;
-}
-
-/* Ember animations */
-@keyframes float-ember {
-  0% {
-    transform: translateY(0) rotate(0deg);
-    opacity: var(--initial-opacity, 0.3);
-  }
-  20% {
-    opacity: var(--initial-opacity, 0.3);
-  }
-  90%, 100% {
-    transform: translateY(-100vh) rotate(var(--rotation, 720deg));
-    opacity: 0;
-  }
-}
-
-.ember {
-  position: absolute;
-  border-radius: 50%;
-  pointer-events: none;
-  animation: float-ember var(--duration, 20s) ease-out forwards;
-  animation-delay: var(--delay, 0s);
-  filter: blur(1px);
-  --initial-opacity: 0.3;
-  --rotation: 720deg;
-}
-
-.ember-primary {
-  background: radial-gradient(circle, var(--primary) 0%, transparent 70%);
-  box-shadow: 0 0 10px 2px rgba(138, 43, 226, 0.3);
-}
-
-.ember-accent {
-  background: radial-gradient(circle, var(--accent) 0%, transparent 70%);
-  box-shadow: 0 0 10px 2px rgba(255, 105, 180, 0.3);
-}
-
-/* Floating animations for background elements */
-@keyframes float-slow {
-  0%, 100% {
-    transform: translate(0, 0);
-  }
-  50% {
-    transform: translate(-5%, -5%);
-  }
-}
-
-@keyframes float-slow-reverse {
-  0%, 100% {
-    transform: translate(0, 0);
-  }
-  50% {
-    transform: translate(5%, 5%);
-  }
-}
-
-@keyframes float-slow-alt {
-  0%, 100% {
-    transform: translate(0, 0);
-  }
-  50% {
-    transform: translate(5%, -5%);
-  }
-}
-
-.animate-float-slow {
-  animation: float-slow 15s ease-in-out infinite;
-}
-
-.animate-float-slow-reverse {
-  animation: float-slow-reverse 20s ease-in-out infinite;
-}
-
-.animate-float-slow-alt {
-  animation: float-slow-alt 17s ease-in-out infinite;
-}
-
-/* Noise texture */
-.bg-noise {
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-  background-repeat: repeat;
-  background-size: 200px 200px;
-}
-
-/* Twinkle animation for sparkles */
-@keyframes twinkle {
-  0%, 100% {
-    opacity: 0.3;
-    transform: scale(0.8);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.2);
-  }
-}
-
-.animate-twinkle {
-  animation: twinkle 2s ease-in-out infinite;
 }

@@ -88,12 +88,8 @@ const DuelsSection: React.FC = () => {
   
   return (
     <section id="duels" ref={sectionRef} className="py-20 md:py-32 relative overflow-hidden">
-      {/* Static swords background with fixed positioning */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-        <Swords className="absolute text-white/[0.015] w-48 h-48 top-20 left-10 rotate-12" />
-        <Swords className="absolute text-white/[0.02] w-32 h-32 bottom-40 right-20 -rotate-15" />
-        <Swords className="absolute text-white/[0.01] w-40 h-40 top-1/3 right-1/4 rotate-45" />
-      </div>
+      {/* Background blur overlay */}
+      <div className="absolute inset-0 bg-background-dark/40 backdrop-blur-sm z-0"></div>
       
       <div className="container mx-auto px-4 relative z-10">
         <div 
@@ -275,26 +271,18 @@ interface DuelCardProps {
 
 const DuelCard: React.FC<DuelCardProps> = ({ duelId, player1, player2, amount, timeRemaining, winner, status }) => {
   return (
-    <div className="duel-card relative overflow-hidden">
-      {/* Enhanced translucent glass background */}
-      <div className="absolute inset-0 bg-background-dark/30 backdrop-blur-md z-0 rounded-2xl"></div>
+    <div className="duel-card backdrop-blur-lg bg-white/5 border border-white/10 rounded-2xl p-6 transition-all duration-300 hover:border-white/20 hover:translate-y-[-4px] relative overflow-hidden shadow-xl">
+      {/* Enhanced glass effect with subtle inner glow */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-accent/5 opacity-40 z-0"></div>
       
-      {/* Subtle gradient overlay based on status */}
-      <div className={`absolute inset-0 opacity-20 z-0 rounded-2xl ${
-        status === 'active' ? 'bg-gradient-to-br from-accent/30 to-transparent' : 
-        status === 'completed' ? 'bg-gradient-to-br from-green-500/30 to-transparent' : 
-        'bg-gradient-to-br from-primary/30 to-transparent'
+      {/* Status color indicator */}
+      <div className={`absolute -top-1 -right-1 -left-1 h-1 rounded-t-2xl ${
+        status === 'active' ? 'bg-accent' : 
+        status === 'completed' ? 'bg-green-500' : 
+        'bg-primary'
       }`}></div>
       
-      {/* Card content */}
-      <div className="relative z-10 border border-white/10 rounded-2xl p-6 transition-all duration-300 hover:border-white/20 hover:translate-y-[-4px]">
-        {/* Status color indicator */}
-        <div className={`absolute -top-1 -right-1 -left-1 h-1 rounded-t-2xl ${
-          status === 'active' ? 'bg-accent' : 
-          status === 'completed' ? 'bg-green-500' : 
-          'bg-primary'
-        }`}></div>
-        
+      <div className="relative z-10">
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center">
             <Swords className="w-5 h-5 text-primary/80 mr-2" />
