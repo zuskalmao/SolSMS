@@ -124,7 +124,7 @@ const Tokenomics = () => {
                 
                 <div className="flex items-center gap-8 mb-6">
                   <div className="text-center flex-1">
-                    <div className="text-3xl font-bold gradient-text mb-1">10</div>
+                    <div className="text-3xl font-bold gradient-text mb-1">10,000</div>
                     <p className="text-white/70 text-sm">$SMS per Message</p>
                   </div>
                   <div className="text-center flex-1">

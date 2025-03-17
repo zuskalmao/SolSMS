@@ -77,7 +77,7 @@ const Hero = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
           >
-            <a href="#nft-messaging" className="btn btn-primary px-8 py-4 text-lg shadow-glow">
+            <a href="#token-messaging" className="btn btn-primary px-8 py-4 text-lg shadow-glow">
               Try Messaging
               <ArrowRight className="ml-2 h-5 w-5" />
             </a>
@@ -96,7 +96,7 @@ const Hero = () => {
         >
           <div className="relative z-10 rounded-2xl overflow-hidden shadow-2xl border border-primary/20 glow">
             <img 
-              src="https://images.unsplash.com/photo-1639762681485-074b7f938ba0?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80" 
+              src="https://ipfs.io/ipfs/bafybeiaggrfum2kwyyubvwi53bbsgan5oypz6xm6supvji4pycf3l5smyu" 
               alt="Solana NFT Messaging Platform" 
               className="w-full h-auto object-cover"
             />
@@ -113,7 +113,6 @@ const Hero = () => {
                 <p className="text-white/90 mb-3">Hey there! This is my first on-chain message sent as an NFT using $SMS. The future of messaging is here!</p>
                 <div className="flex justify-between items-center text-sm text-white/60">
                   <span>Sent via $SMS</span>
-                  <span>0x6F5...8a3F</span>
                 </div>
               </div>
             </div>
