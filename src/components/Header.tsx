@@ -30,7 +30,6 @@ const Header = () => {
       <div className="container flex items-center justify-between">
         <a href="/" className="flex items-center gap-2 text-2xl font-bold">
           <MessageSquare className="text-primary h-8 w-8" />
-          <span className="gradient-text">$SMS</span>
         </a>
 
         {/* Desktop Navigation */}
