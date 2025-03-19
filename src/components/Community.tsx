@@ -1,5 +1,9 @@
 import { motion } from 'framer-motion';
-import { Twitter, Globe, Send, MessageSquare } from 'lucide-react';
+import { Twitter, Send } from 'lucide-react';
+
+// Twitter URL for reuse
+const TWITTER_URL = "https://twitter.com/SMStoken";
+const TELEGRAM_URL = "https://t.me/SMStoken";
 
 const Community = () => {
   return (
@@ -40,10 +44,10 @@ const Community = () => {
           </motion.p>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Twitter */}
           <motion.a
-            href="#"
+            href={TWITTER_URL}
             target="_blank"
             rel="noopener noreferrer"
             className="card card-hover p-8 flex flex-col items-center text-center group"
@@ -63,7 +67,7 @@ const Community = () => {
           
           {/* Telegram */}
           <motion.a
-            href="#"
+            href={TELEGRAM_URL}
             target="_blank"
             rel="noopener noreferrer"
             className="card card-hover p-8 flex flex-col items-center text-center group"
@@ -79,46 +83,6 @@ const Community = () => {
             <h3 className="text-xl font-semibold mb-3">Telegram</h3>
             <p className="text-white/70 mb-4">Join our Telegram group to chat with the community and team members.</p>
             <span className="text-primary font-medium group-hover:underline">t.me/SMStoken</span>
-          </motion.a>
-          
-          {/* Discord */}
-          <motion.a
-            href="#"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="card card-hover p-8 flex flex-col items-center text-center group"
-            whileHover={{ y: -5 }}
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.4, delay: 0.2 }}
-          >
-            <div className="w-16 h-16 rounded-full bg-[#5865F2]/10 flex items-center justify-center mb-6 group-hover:bg-[#5865F2]/20 transition-colors">
-              <MessageSquare className="h-8 w-8 text-[#5865F2]" />
-            </div>
-            <h3 className="text-xl font-semibold mb-3">Discord</h3>
-            <p className="text-white/70 mb-4">Dive deeper into discussions, development updates, and community initiatives.</p>
-            <span className="text-primary font-medium group-hover:underline">discord.gg/SMStoken</span>
-          </motion.a>
-          
-          {/* Website */}
-          <motion.a
-            href="#"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="card card-hover p-8 flex flex-col items-center text-center group"
-            whileHover={{ y: -5 }}
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.4, delay: 0.3 }}
-          >
-            <div className="w-16 h-16 rounded-full bg-secondary/10 flex items-center justify-center mb-6 group-hover:bg-secondary/20 transition-colors">
-              <Globe className="h-8 w-8 text-secondary" />
-            </div>
-            <h3 className="text-xl font-semibold mb-3">Website</h3>
-            <p className="text-white/70 mb-4">Explore our official website for comprehensive information about $SMS.</p>
-            <span className="text-primary font-medium group-hover:underline">smstoken.xyz</span>
           </motion.a>
         </div>
         
@@ -136,10 +100,10 @@ const Community = () => {
               Be among the first to experience the future of on-chain messaging and become part of the growing $SMS ecosystem.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <a href="#nft-messaging" className="btn btn-primary">
+              <a href="#token-messaging" className="btn btn-primary">
                 Try Messaging
               </a>
-              <a href="#" className="btn btn-outline">
+              <a href={TWITTER_URL} target="_blank" rel="noopener noreferrer" className="btn btn-outline">
                 Join Community
               </a>
             </div>
