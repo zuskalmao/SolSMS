@@ -36,7 +36,7 @@ const Header = () => {
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-8">
           <a href="#features" className="text-white/80 hover:text-white transition-colors">Features</a>
-          <a href="#nft-messaging" className="text-white/80 hover:text-white transition-colors">NFT Messaging</a>
+          <a href="#token-messaging" className="text-white/80 hover:text-white transition-colors">NFT Messaging</a>
           <a href="#tokenomics" className="text-white/80 hover:text-white transition-colors">About</a>
           <a href="#community" className="text-white/80 hover:text-white transition-colors">Community</a>
         </nav>
@@ -73,7 +73,7 @@ const Header = () => {
               Features
             </a>
             <a 
-              href="#nft-messaging" 
+              href="#token-messaging" 
               className="text-white/80 hover:text-white transition-colors py-2"
               onClick={() => setIsMenuOpen(false)}
             >
