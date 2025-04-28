@@ -222,7 +222,7 @@ export async function uploadTokenMetadata(
       symbol: tokenSymbol,
       description: `Message from ${sender.slice(0, 4)}...${sender.slice(-4)} sent on ${new Date(timestamp).toLocaleString()}`,
       image: imageUrls.ipfsUrl, // Use IPFS URL for image reference
-      external_url: "https://smstoken.com",
+      external_url: "https://solanasms.fun",
       attributes: [
         {
           trait_type: "Token Type",
