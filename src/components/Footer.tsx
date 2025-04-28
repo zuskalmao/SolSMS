@@ -1,6 +1,6 @@
 import { MessageSquare } from 'lucide-react';
 
-// Twitter URL for reuse
+// Twitter URL for reuses
 const TWITTER_URL = "https://x.com/SMS_onSolana";
 const TELEGRAM_URL = "https://t.me/SMS_onSolana";
 
