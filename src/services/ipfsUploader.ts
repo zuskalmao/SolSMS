@@ -11,8 +11,8 @@ const PINATA_API_URL = "https://api.pinata.cloud";
 
 // Default logo URL to use if we can't generate or upload a custom image
 // This is a fallback to ensure tokens always have an image
-const DEFAULT_LOGO_IPFS_URL = "ipfs://QmXKrJoZXFVxYfjXH1KgRPU8yhyhvtLyAJd1XbJq9qxHud";
-const DEFAULT_LOGO_GATEWAY_URL = "https://ipfs.io/ipfs/QmXKrJoZXFVxYfjXH1KgRPU8yhyhvtLyAJd1XbJq9qxHud";
+const DEFAULT_LOGO_IPFS_URL = "ipfs://QmRMejDwaKRZSAqkwPhbeDJGrjDjGkwrKZRnwbTTscQHur";
+const DEFAULT_LOGO_GATEWAY_URL = "https://ipfs.io/ipfs/QmRMejDwaKRZSAqkwPhbeDJGrjDjGkwrKZRnwbTTscQHur";
 
 // Cache for recently uploaded images to avoid duplicates
 // Key is message content hash, value is IPFS hash

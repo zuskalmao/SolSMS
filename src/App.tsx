@@ -23,7 +23,7 @@ function App() {
   
   // Using custom RPC endpoint instead of default endpoint
   // Changed to HTTPS to avoid mixed content errors
-  const endpoint = "https://mainnet.helius-rpc.com/?api-key=6cff9786-2818-4559-9def-e02867a6fa47";
+  const endpoint = "https://mainnet.helius-rpc.com/?api-key=a13e5dac-435f-4d89-b338-d22f8ea676f6";
   
   const wallets = useMemo(() => [
     new PhantomWalletAdapter(),
