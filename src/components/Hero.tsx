@@ -94,6 +94,7 @@ const Hero = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.6 }}
         >
+          {/* Hero Image */}
           <div className="relative z-10 rounded-2xl overflow-hidden shadow-2xl border border-primary/20 glow">
             <img 
               src="https://ipfs.io/ipfs/QmRMejDwaKRZSAqkwPhbeDJGrjDjGkwrKZRnwbTTscQHur" 
