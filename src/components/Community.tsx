@@ -2,8 +2,8 @@ import { motion } from 'framer-motion';
 import { Twitter, Send } from 'lucide-react';
 
 // Twitter URL for reuse
-const TWITTER_URL = "https://twitter.com/SMStoken";
-const TELEGRAM_URL = "https://t.me/SMStoken";
+const TWITTER_URL = "https://x.com/SMS_onSolana";
+const TELEGRAM_URL = "https://t.me/SMS_onSolana";
 
 const Community = () => {
   return (
@@ -62,7 +62,7 @@ const Community = () => {
             </div>
             <h3 className="text-xl font-semibold mb-3">Twitter</h3>
             <p className="text-white/70 mb-4">Follow us for the latest updates, announcements, and community activities.</p>
-            <span className="text-primary font-medium group-hover:underline">@SMStoken</span>
+            <span className="text-primary font-medium group-hover:underline">@SMS_onSolana</span>
           </motion.a>
           
           {/* Telegram */}
@@ -82,7 +82,7 @@ const Community = () => {
             </div>
             <h3 className="text-xl font-semibold mb-3">Telegram</h3>
             <p className="text-white/70 mb-4">Join our Telegram group to chat with the community and team members.</p>
-            <span className="text-primary font-medium group-hover:underline">t.me/SMStoken</span>
+            <span className="text-primary font-medium group-hover:underline">@SMS_onSolana</span>
           </motion.a>
         </div>
         
