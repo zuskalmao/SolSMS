@@ -97,7 +97,7 @@ const Hero = () => {
           {/* Hero Image */}
           <div className="relative z-10 rounded-2xl overflow-hidden shadow-2xl border border-primary/20 glow">
             <img 
-              src="https://ipfs.io/ipfs/QmV2WZjYCnzFGz5K9QmGKGk3cZhhztqt67nrTUpwCZ1nrP" 
+              src="https://ipfs.io/ipfs/QmYMjxnrCwpojJpyTjngGyfTE39RnDNdr5Ys87KmPVcT5z" 
               alt="Solana NFT Messaging Platform" 
               className="w-full h-auto object-cover"
             />
